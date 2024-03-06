@@ -16,48 +16,54 @@ datasource db {
 // Définition du modèle pour la table Infrastructure
 model Infrastructure {
   id     Int              @id @default(autoincrement())
-  name                String?
-  locationAdresse     String?
+  name                String
+  locationAdresse     Json?
   constructionDate    DateTime?
   description         String?
   type                String?
-  country             String?
-  city                String?
-  adress              String?
+  country             String
+  city                String
   InspectionProjects InspectionProject[]
 }
 
 // Définition du modèle pour la table InspectionProject
 model InspectionProject {
   id   Int              @id
-  projectName          String?
+  projectName          String
   description          String?
   startDate            DateTime?
   endDate              DateTime?
-  createdBy            String?
-  Infrastructure_ID  Int
+  thumbnail             Json?
 
-  Infrastructure    Infrastructure     @relation(fields: [Infrastructure_ID], references: [id])
+  InfrastructureId  Int
+  AdminAccountId Int
+  AdminAccount    AdminAccount     @relation(fields: [AdminAccountId], references: [id])
+
+//relation with infrastructure
+  Infrastructure    Infrastructure     @relation(fields: [InfrastructureId], references: [id])
   Damages Damage[]
   RapportInspectionID InspectionRapport?
-  InspectionVideos VideoInspection[]
-  InspectionImages ImageInspection[]
-  FlightPaths FlightPathDrone[]
+
+  MediaInput MediaInput[]
+  // InspectionVideos VideoInspection[]
+  // InspectionImages ImageInspection[]
+  // FlightPaths FlightPathDrone[]
+  
 }
 
 // Définition du modèle pour la table Damage
 model Damage {
   id               Int      @id @default(autoincrement())
-  type                  String?
+  type                  String
   dangerDegree          Int?
   description           String?
   position              String?
-  videoFrameNumber      Int?
-  damageImage           String?
-  damageImageCropped    String?
+  videoFrameNumber      Int
+  damageImagename           String?
+  damageImageCroppedname    String?
   imagesPath            String?
   modelPrediction       Int?
-  totalDomageIdModel    Int?
+  DomageIdModel    Int?
   DamageClassIdModel    Int?
   detectionTimestampVideo DateTime?
   inspectionProjectId  Int
@@ -70,18 +76,19 @@ model Damage {
 model InspectionRapport {
   id  Int      @id @default(autoincrement())
   description            String?
-  title                  String?
-  content                Json?
+  title                  String
+  content                Json
   creationDate           DateTime?
   createdBy              String?
   InspectionProjectID   Int               @unique
+
+    // Relation avec InspectionProject
   project InspectionProject @relation(fields: [InspectionProjectID], references: [id])
   
 
 
 
-  // Relation avec InspectionProject
-  // Relation inverse avec InspectionProject
+
 }
 
 
@@ -89,24 +96,27 @@ model InspectionRapport {
 // Définition du modèle pour la table MediaInput
 model MediaInput {
   id  Int      @id
-  path         String?
-  filename     String?
+  path         String
+  filename     String
   addedDate    DateTime?
-  uploadedBy   String?
-  InspectionVideos VideoInspection[]
-  InspectionImages ImageInspection[]
-  FlightPaths FlightPathDrone[]
+  projectId Int
+
+  project InspectionProject @relation(fields: [projectId], references: [id])
+  InspectionVideos VideoInspection?
+  InspectionImages ImageInspection?
+  FlightPaths FlightPathDrone?
+
+
 }
 // Définition du modèle pour la table VideoInspection
 model VideoInspection {
   id                Int      @id @default(autoincrement())
   frameRate             Float?
   length                DateTime?
-  mediaInputId         Int
+  mediaInputId         Int @unique
   inspectionProjectId  Int
    
   // Relation avec InspectionProject
-  inspectionProject     InspectionProject @relation(fields: [inspectionProjectId], references: [id])
   mediaInput     MediaInput @relation(fields: [mediaInputId], references: [id])
 
 }
@@ -115,67 +125,82 @@ model VideoInspection {
 model ImageInspection {
   id                Int      @id @default(autoincrement())
   inspectionProjectId  Int
-  mediaInputId         Int
+  mediaInputId         Int @unique
  
   // Relation avec InspectionProject
-  inspectionProject     InspectionProject @relation(fields: [inspectionProjectId], references: [id])
   mediaInput     MediaInput @relation(fields: [mediaInputId], references: [id])
 
 }
 model FlightPathDrone {
   id          Int      @id @default(autoincrement())
   content              Json?
-  mediaInputId        Int
+  mediaInputId        Int @unique
   inspectionProjectId  Int
    
   // Relation avec InspectionProject
-  inspectionProject     InspectionProject @relation(fields: [inspectionProjectId], references: [id])
   mediaInput     MediaInput @relation(fields: [mediaInputId], references: [id])
 
 }
 model Auth {
   id     Int   @id
-  username   String?
+  username   String
   email      String?
-  password   String?
+  password   String
   phone      String?
 
 
-  GuestId Guest?
-  AdminAccountId AdminAccount?
+  GuestId Guest?  
+  AdminAccountId AdminAccount?  
 
 }
 model AdminAccount {
   id              Int   @id
   organizationName    String?
   locationAdress      String?
-  authId Int @unique           
+  inspectionProjectId String
+  thumbnail             Json?
+
+  authId Int @unique      
+  //relation avec  Auth  
   auth Auth @relation(fields: [authId], references:[id])
 
   Guests Guest_AdminAccount_Relation[]
-
+  inspectionProjects    InspectionProject[]
+ 
 }
 model Guest {
   id            Int      @id
-  firstname          String?
-  lastname           String?
+  firstname          String
+  lastname           String
   adress             String?
   professionalExperiences Json?
   profession         String?
   aboutMe            String?
- authId Int @unique           
+  thumbnail             Json?
+
+ authId Int @unique   
+
+   //relation avec  Auth          
   auth Auth @relation(fields: [authId], references:[id])
 
   AdminAccounts Guest_AdminAccount_Relation[]
 }
 
 model Guest_AdminAccount_Relation{
+  accessRight privilege[]
+  authorized Boolean
+  role String
+  authorizedProjects String[]
+   //relation avec Guest
   guest Guest @relation(fields: [guestId], references:[id])
   guestId Int
-
+  //relation avec AdminAccount
   adminAccount AdminAccount @relation(fields: [adminAccountId],references:[id])
   adminAccountId Int
   @@id([guestId,adminAccountId])
 }
-
+enum privilege {
+ReadOnly
+ReadWrite
+}
 
