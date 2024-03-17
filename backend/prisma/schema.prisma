@@ -7,231 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model AdminAccount {
-  id                  Int      @id@default(autoincrement())
-  username            String
-  organizationName    String
-  country             String
-  city                String
-  phoneNumber         String
-  email               String
-  password            String
-  locationAdress      String?
 
-  thumbnail           Json?
-  registerTime        DateTime @default(now())
-  createdAt           DateTime @default(now())
-  role               Role     @default(ADMIN)
-  guest Guest[]
-  Guests             Guest_AdminAccount_Relation[]
-  inspectionProjectId String
-  inspectionProjects InspectionProject[]
+model AccountCompany {
+  id Int @id @default(autoincrement())
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+  projects  Project[]
+  guests Guest[]  
+}
+
+model Project {
+  id Int @id @default(autoincrement())
+  name String
+  description String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accountId   Int       // Define a foreign key referencing AccountCompany
+  account     AccountCompany @relation(fields: [accountId], references: [id])
+
+
 }
 
 model Guest {
-  id                      Int     @id@default(autoincrement())
-  firstname               String
-  lastname                String
-  email                   String
-  password                String
-  adress                  String?
-  professionalExperiences Json?
-  profession              String?
-  aboutMe                 String?
-  thumbnail               Json?
-  role                   Role    @default(GUEST)
-  adminaccount     AdminAccount      @relation(fields: [adminAccountid], references: [id])
-  adminAccountid    Int 
-  AdminAccounts Guest_AdminAccount_Relation[]
-}
- enum Role {
-  ADMIN
-  GUEST
- }
-model Guest_AdminAccount_Relation {
+  id Int @id @default(autoincrement())
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accountId   Int
+  account     AccountCompany @relation(fields: [accountId], references: [id])
   
-  accessRight        Privilege
-  authorized         Boolean
-  role               String
-  authorizedProjects String
-  guest              Guest        @relation(fields: [guestId], references: [id])
-  guestId            Int
-  adminAccount       AdminAccount @relation(fields: [adminAccountId], references: [id])
-  adminAccountId     Int
-
-  @@id([guestId, adminAccountId])
-}
-
-enum Privilege {
-  ReadOnly
-  ReadWrite
-}
-
-// model User {
-//   id           Int       @id @default(autoincrement())
-//   role         Role      @default(USER)
-//   email        String
-//   password     String
-//   username     String
-//   registerTime DateTime  @default(now())
-//   createdAt    DateTime  @default(now())
-//   userinfo     Userinfo?
-//   companyId    Int
-//   company      Company   @relation(fields: [companyId], references: [id])
-// }
-
-// enum Role {
-//   ADMIN
-//   GUEST
-//   USER
-// }
-
-// model AdminCompany {
-//   id          Int       @id @default(autoincrement())
-//   role        Role      @default(ADMIN)
-//   email       String
-//   nameCompany String
-//   password    String
-//   companyId   Int       @unique
-//   company     Company?
-//   userinfo    Userinfo?
-// }
-
-// model Userinfo {
-//   id             Int          @id @default(autoincrement())
-//   authorized     Boolean      @default(false)
-//   phone          Int
-//   userId         Int          @unique
-//   user           User         @relation(fields: [userId], references: [id])
-//   adminCompanyId Int          @unique
-//   adminComapny   AdminCompany @relation(fields: [adminCompanyId], references: [id])
-// }
-
-// model Company {
-//   id      Int    @id @default(autoincrement())
-//   adresse String
-//   name    String
-//   userId  Int
-//   User    User[]
-
-//   AdminCompanyId Int          @unique
-//   adminCompany   AdminCompany @relation(fields: [AdminCompanyId], references: [id])
-// }
-
-// Définition du modèle pour la table Infrastructure
-model Infrastructure {
-  id                 Int                 @id @default(autoincrement())
-  name               String
-  locationAdresse    Json?
-  constructionDate   DateTime?
-  description        String?
-  type               String?
-  country            String
-  city               String
-  InspectionProjects InspectionProject[]
-}
-
-// Définition du modèle pour la table InspectionProject
-model InspectionProject {
-  id          Int       @id  @default(autoincrement())
-  projectName String
-  description String?
-  startDate   DateTime?
-  endDate     DateTime?
-  thumbnail   Json?
-
-  InfrastructureId Int
-  AdminAccountId   Int
-  AdminAccount     AdminAccount @relation(fields: [AdminAccountId], references: [id])
-
-  //relation with infrastructure
-  Infrastructure      Infrastructure     @relation(fields: [InfrastructureId], references: [id])
-  Damages             Damage[]
-  RapportInspectionID InspectionRapport?
-
-  MediaInput MediaInput[]
-  // InspectionVideos VideoInspection[]
-  // InspectionImages ImageInspection[]
-  // FlightPaths FlightPathDrone[]
-}
-
-// Définition du modèle pour la table Damage
-model Damage {
-  id                      Int       @id @default(autoincrement())
-  type                    String
-  dangerDegree            Int?
-  description             String?
-  position                String?
-  videoFrameNumber        Int
-  damageImagename         String?
-  damageImageCroppedname  String?
-  imagesPath              String?
-  modelPrediction         Int?
-  DomageIdModel           Int?
-  DamageClassIdModel      Int?
-  detectionTimestampVideo DateTime?
-  inspectionProjectId     Int
-
-  // Relation avec InspectionProject
-  inspectionProject InspectionProject @relation(fields: [inspectionProjectId], references: [id])
-}
-
-// Définition du modèle pour la table InspectionRapport
-model InspectionRapport {
-  id                  Int       @id @default(autoincrement())
-  description         String?
-  title               String
-  content             Json
-  creationDate        DateTime?
-  createdBy           String?
-  InspectionProjectID Int       @unique
-
-  // Relation avec InspectionProject
-  project InspectionProject @relation(fields: [InspectionProjectID], references: [id])
-}
-
-// Définition du modèle pour la table MediaInput
-model MediaInput {
-  id        Int       @id   @default(autoincrement())
-  path      String
-  filename  String
-  addedDate DateTime?
-  projectId Int
-
-  project          InspectionProject @relation(fields: [projectId], references: [id])
-  InspectionVideos VideoInspection?
-  InspectionImages ImageInspection?
-  FlightPaths      FlightPathDrone?
-}
-
-// Définition du modèle pour la table VideoInspection
-model VideoInspection {
-  id                  Int       @id @default(autoincrement())
-  frameRate           Float?
-  length              DateTime?
-  mediaInputId        Int       @unique
-  inspectionProjectId Int
-
-  // Relation avec InspectionProject
-  mediaInput MediaInput @relation(fields: [mediaInputId], references: [id])
-}
-
-// Définition du modèle pour la table ImageInspection
-model ImageInspection {
-  id                  Int @id @default(autoincrement())
-  inspectionProjectId Int
-  mediaInputId        Int @unique
-
-  // Relation avec InspectionProject
-  mediaInput MediaInput @relation(fields: [mediaInputId], references: [id])
-}
-
-model FlightPathDrone {
-  id                  Int   @id @default(autoincrement())
-  content             Json?
-  mediaInputId        Int   @unique
-  inspectionProjectId Int
-
-  // Relation avec InspectionProject
-  mediaInput MediaInput @relation(fields: [mediaInputId], references: [id])
 }

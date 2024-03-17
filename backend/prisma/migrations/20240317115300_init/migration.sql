@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE `AdminAccount` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `Username` VARCHAR(191) NOT NULL,
+    `username` VARCHAR(191) NOT NULL,
     `organizationName` VARCHAR(191) NOT NULL,
     `country` VARCHAR(191) NOT NULL,
     `city` VARCHAR(191) NOT NULL,
@@ -9,11 +9,11 @@ CREATE TABLE `AdminAccount` (
     `email` VARCHAR(191) NOT NULL,
     `password` VARCHAR(191) NOT NULL,
     `locationAdress` VARCHAR(191) NULL,
-    `inspectionProjectId` VARCHAR(191) NOT NULL,
     `thumbnail` JSON NULL,
     `registerTime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `role` ENUM('ADMIN', 'GUEST') NOT NULL DEFAULT 'ADMIN',
+    `inspectionProjectId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -31,6 +31,7 @@ CREATE TABLE `Guest` (
     `aboutMe` VARCHAR(191) NULL,
     `thumbnail` JSON NULL,
     `role` ENUM('ADMIN', 'GUEST') NOT NULL DEFAULT 'GUEST',
+    `adminAccountid` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -63,7 +64,7 @@ CREATE TABLE `Infrastructure` (
 
 -- CreateTable
 CREATE TABLE `InspectionProject` (
-    `id` INTEGER NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `projectName` VARCHAR(191) NOT NULL,
     `description` VARCHAR(191) NULL,
     `startDate` DATETIME(3) NULL,
@@ -111,7 +112,7 @@ CREATE TABLE `InspectionRapport` (
 
 -- CreateTable
 CREATE TABLE `MediaInput` (
-    `id` INTEGER NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `path` VARCHAR(191) NOT NULL,
     `filename` VARCHAR(191) NOT NULL,
     `addedDate` DATETIME(3) NULL,
@@ -152,6 +153,9 @@ CREATE TABLE `FlightPathDrone` (
     UNIQUE INDEX `FlightPathDrone_mediaInputId_key`(`mediaInputId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `Guest` ADD CONSTRAINT `Guest_adminAccountid_fkey` FOREIGN KEY (`adminAccountid`) REFERENCES `AdminAccount`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Guest_AdminAccount_Relation` ADD CONSTRAINT `Guest_AdminAccount_Relation_guestId_fkey` FOREIGN KEY (`guestId`) REFERENCES `Guest`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

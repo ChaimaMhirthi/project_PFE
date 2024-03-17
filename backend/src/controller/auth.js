@@ -5,52 +5,68 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require("express-async-handler");
 
-const { getUserByEmail } = require('./adminController');
-
-const register = async (userData) => {
-    const { password, role, ...rest } = userData;
+const registerCompany = async  (req, res)  => {
+    const { password, ...rest } = req.body;
     try {
-        const newUser = await prisma.user.create({
+        const user = await getUserByEmail(rest.email);
+        if (user) {
+            res.status(400).json({ error: 'Email already in use' });
+        }
+
+        const newCompany = await prisma.accountCompany.create({
             data: {
                 ...rest,
-                role,
                 password: await bcrypt.hash(password, 10)
             }
         });
-        return newUser;
+        
+        res.status(201).json(newCompany);
     } catch (error) {
-        console.error('Error creating user:', error);
-        throw error;
+        res.status(500).json({ error: 'Error creating user' });
     }
 };
 
-const login = asyncHandler(async (userData) => {
+const loginCompany = asyncHandler(async (req, res) => {
+    const userData = req.body;
     try {
         if (!userData.email || !userData.password) {
-            return { error: 'Email and password are required' };
+            res.status(400).json({ error: 'Invalid request please fill email and password fields' });
         }
 
-        const user = await getUserByEmail(userData);
+        const user = await getUserByEmail(userData.email);
         if (!user) {
-            return { error: 'User not found' };
+            res.status(400).json({ error: 'Invalid email' });
         }
 
         const match = await bcrypt.compare(userData.password, user.password);
         if (!match) {
-            throw new Error('Invalid password');
+            res.status(400).json({ error: 'Invalid password' });
         }
 
         const accessToken = jwt.sign(
-            { user: { id: user.id, role: user.role } },
+            { user: { id: user.id } },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "700m" }
+            { expiresIn: "60m" }
         );
         let userInfo = { ...user, password: undefined };
-        return { userInfo, accessToken };
+        res.status(200).json({ userInfo, accessToken });
+    } catch (error) {
+        res.status(500).json({ error: 'Error logging in' });
+    }
+});
+
+const getUserByEmail = async (email) => { 
+    try {
+        const user = await prisma.accountCompany.findUnique({
+            where: {
+                email: email
+            }
+        });
+        return user;
     } catch (error) {
         console.error('Error getting user:', error);
         throw error;
     }
-});
+}
 
-module.exports = { register, login };
+module.exports = { registerCompany, loginCompany };
