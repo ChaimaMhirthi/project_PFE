@@ -5,15 +5,15 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require("express-async-handler");
 
-const { getUserByEmail } = require('./user');
+const { getUserByEmail } = require('./adminController');
 
 const register = async (userData) => {
-
-    const { password, ...rest } = userData;
+    const { password, role, ...rest } = userData;
     try {
         const newUser = await prisma.user.create({
             data: {
                 ...rest,
+                role,
                 password: await bcrypt.hash(password, 10)
             }
         });
@@ -37,15 +37,15 @@ const login = asyncHandler(async (userData) => {
 
         const match = await bcrypt.compare(userData.password, user.password);
         if (!match) {
-            throw new Error('Invalid password'); // Throw error instead of returning object
+            throw new Error('Invalid password');
         }
 
         const accessToken = jwt.sign(
-            { user: { id: user.id } },
+            { user: { id: user.id, role: user.role } },
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn: "700m" }
         );
-        userInfo = { ...user, password: undefined };
+        let userInfo = { ...user, password: undefined };
         return { userInfo, accessToken };
     } catch (error) {
         console.error('Error getting user:', error);

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `inspectionproject` MODIFY `id` INTEGER NOT NULL AUTO_INCREMENT;
+
+-- AlterTable
+ALTER TABLE `mediainput` MODIFY `id` INTEGER NOT NULL AUTO_INCREMENT;
