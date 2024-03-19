@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRouter = require('./routes/auth');
 const projectRouter = require('./routes/project');
 const companyRouter = require('./routes/company');
+const resourceRouter = require('./routes/resource');
 const authenticateToken = require('./middleware/authenticationToken');
 
 
@@ -17,6 +18,8 @@ app.use('/auth', authRouter);
 app.use('/project', authenticateToken, projectRouter);
 app.use('/company', authenticateToken, companyRouter);
 
+app.use(authenticateToken,resourceRouter)
+app.use('/uploads', express.static('./public/images'));
 
 
 
