@@ -27,7 +27,7 @@ model Project {
   accountId   Int       // Define a foreign key referencing AccountCompany
   account     AccountCompany @relation(fields: [accountId], references: [id])
 
-  resources Reesource[]
+  resources Resource[]
 
 }
 
@@ -43,7 +43,7 @@ model Guest {
   
 }
 
-model Reesource {
+model Resource {
   id Int @id @default(autoincrement())
   type String
   path String

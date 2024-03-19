@@ -76,6 +76,34 @@ const deleteProject = async (req, res) => {
         res.status(500).json({ error: 'Error deleting project' });
     }
 }
-module.exports = {createProject, updateProject, getProjects, deleteProject};
+
+const addResource = async (req, res) => {
+    const projectId = req.params.id;
+    const mimetype = req.file.mimetype;
+    const type= mimetype.split("/")[1];
+    const path = req.file.path;
+    const requestData = {type: type , path: path}
+    try {
+        const newResource = await prisma.resource.create({
+            data: {
+                ...requestData,
+                project: {
+                    connect: {
+                        id: parseInt(projectId)
+                    }
+                }
+            }
+        });
+        res.status(201).json(newResource);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Error creating resource' });
+    }
+}
+
+
+
+
+module.exports = {createProject, updateProject, getProjects, deleteProject,addResource};
 
 

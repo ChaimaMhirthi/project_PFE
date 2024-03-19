@@ -16,7 +16,8 @@ const upload = multer({
 
 router.post('/upload', upload.single('file'), (req, res) => {
     try {
-        res.status(200).json({ filename: req.file.filename, message: "File uploaded successfully" });
+        console.log(req.file)
+        res.status(200).json({ filename: req.file.filename,filepath: req.file.path ,type: req.file.mimetype, message: "File uploaded successfully" });
     } catch (err) {
         res.status(500).json({ message: err.message });
         console.log(err);
