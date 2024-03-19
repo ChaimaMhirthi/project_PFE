@@ -17,6 +17,10 @@ app.use('/auth', authRouter);
 app.use('/project', authenticateToken, projectRouter);
 app.use('/company', authenticateToken, companyRouter);
 
+
+
+
+
 app.listen(port, () =>
   console.log(`🚀 Server ready at: http://localhost:${port}`),
 );

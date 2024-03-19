@@ -23,5 +23,19 @@ const addGuestToCompany = async (req, res) => {
         res.status(500).json({ error: 'Error adding guest' });
     }
 }
+const deleteGuest = async (req, res) => {
+    const guestId = req.params.id;
+    try {
+        const deletedGuest = await prisma.guest.delete({
+            where: {
+                id: parseInt(guestId)
+            }
+        });
+        res.status(200).json(deletedGuest);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Error deleting guest' });
+    }
+}
 
-module.exports = {addGuestToCompany}
+module.exports = {addGuestToCompany, deleteGuest}
