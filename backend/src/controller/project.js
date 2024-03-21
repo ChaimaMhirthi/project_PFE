@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const {createResourceForProject} = require('../controller/resource')
 
 
 const createProject = async (req, res) => {
@@ -81,19 +82,10 @@ const addResource = async (req, res) => {
     const projectId = req.params.id;
     const mimetype = req.file.mimetype;
     const type= mimetype.split("/")[1];
-    const path = req.file.path;
+    const path = req.file.filename;
     const requestData = {type: type , path: path}
     try {
-        const newResource = await prisma.resource.create({
-            data: {
-                ...requestData,
-                project: {
-                    connect: {
-                        id: parseInt(projectId)
-                    }
-                }
-            }
-        });
+        const newResource = await createResourceForProject(projectId,requestData);
         res.status(201).json(newResource);
     } catch (error) {
         console.log(error);

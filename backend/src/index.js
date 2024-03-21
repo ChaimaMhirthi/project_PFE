@@ -19,7 +19,7 @@ app.use('/project', authenticateToken, projectRouter);
 app.use('/company', authenticateToken, companyRouter);
 
 app.use(authenticateToken,resourceRouter)
-app.use('/uploads', express.static('./public/images'));
+app.use('/get-image', express.static('./public/images'));
 
 
 
