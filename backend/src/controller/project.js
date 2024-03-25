@@ -85,6 +85,14 @@ const addResource = async (req, res) => {
     const path = req.file.filename;
     const requestData = {type: type , path: path}
     try {
+        const projectFound = await prisma.project.findUnique({
+            where: {
+                id: parseInt(projectId)
+            }
+        });
+        if (!projectFound) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
         const newResource = await createResourceForProject(projectId,requestData);
         res.status(201).json(newResource);
     } catch (error) {
