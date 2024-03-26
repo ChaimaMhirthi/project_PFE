@@ -15,6 +15,7 @@ model AccountCompany {
   createdAt DateTime @default(now())
   projects  Project[]
   guests Guest[]  
+  comments  Comment[]
 }
 
 model Project {
@@ -28,6 +29,7 @@ model Project {
   account     AccountCompany @relation(fields: [accountId], references: [id])
 
   resources Resource[]
+  Damages DamageImage[]
 
 }
 
@@ -40,6 +42,7 @@ model Guest {
 
   accountId   Int
   account     AccountCompany @relation(fields: [accountId], references: [id])
+  comments  Comment[]
   
 }
 
@@ -52,4 +55,35 @@ model Resource {
 
   projectId   Int
   project     Project @relation(fields: [projectId], references: [id])
+}
+model Comment {
+  id            Int         @id @default(autoincrement())
+  description   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  DamageImageId Int?
+  DamageImage   DamageImage? @relation(fields: [DamageImageId], references: [id])
+  AccountCompanyId Int?
+  AccountCompany   AccountCompany? @relation(fields: [AccountCompanyId], references: [id])
+  GuestId Int?
+  Guest   Guest? @relation(fields: [GuestId], references: [id])
+}
+
+model DamageImage {
+  id                     Int        @id @default(autoincrement())
+  type                   String
+  dangerDegree           Int?
+  description            String?
+  position               String?
+  videoFrameNumber       Int
+  damageImagename        String?
+  damageImageCroppedname String?
+  imagesPath             String?
+  modelPrediction        Int?
+  DomageIdModel          Int?
+  DamageClassIdModel     Int?
+  detectionTimestampVideo DateTime?
+  ProjectId              Int
+  Comments               Comment[] 
+  Project                Project    @relation(fields: [ProjectId], references: [id])
 }

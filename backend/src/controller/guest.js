@@ -79,4 +79,37 @@ const deleteGuest = async (req, res) => {
     }
 }
 
-module.exports = {addGuestToCompany, deleteGuest, addCompanyOwnerToGuest}
+const registerGuest = async (req, res) => {
+    const requestData = req.body;
+    try {
+        const newGuest = await prisma.guest.create({
+            data: requestData
+        });
+        res.status(201).json(newGuest);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Error adding guest' });
+    }
+}
+    const loginGuest = async (req, res) => {
+    const requestData = req.body;
+    try {
+        const guest = await prisma.guest.findUnique({
+            where: {
+                email: requestData.email
+            }
+        });
+        if (!guest) {
+            return res.status(404).json({ error: 'Guest not found' });
+        }
+        if (guest.password !== requestData.password) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        res.status(200).json(guest);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Error logging in guest' });
+    }
+}
+
+module.exports = {addGuestToCompany, deleteGuest, addCompanyOwnerToGuest, loginGuest,registerGuest}
