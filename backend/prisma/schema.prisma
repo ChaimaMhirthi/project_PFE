@@ -7,29 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-model AccountCompany {
+enum Creator {
+  COMPANY
+  GUEST
+}
+enum Privilege {
+  RO
+  RW
+  RWC
+}
+model Company {
   id Int @id @default(autoincrement())
   email String @unique
   password String
   createdAt DateTime @default(now())
   projects  Project[]
-  guests Guest[]  
+  
   comments  Comment[]
-}
-
-model Project {
-  id Int @id @default(autoincrement())
-  name String
-  description String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  accountId   Int       // Define a foreign key referencing AccountCompany
-  account     AccountCompany @relation(fields: [accountId], references: [id])
-
-  resources Resource[]
-  Damages DamageImage[]
+  guests Invitation[]
 
 }
 
@@ -40,11 +35,42 @@ model Guest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accountId   Int
-  account     AccountCompany @relation(fields: [accountId], references: [id])
-  comments  Comment[]
   
+  comments  Comment[]
+  company  Invitation[]
+
 }
+model Invitation{
+  guest Guest @relation(fields: [guestId],references: [id])
+  guestId Int
+  company Company @relation(fields: [companyId],references: [id])
+  companyId Int
+  privilege Privilege
+  authProjects Json     
+  createdAt       DateTime    @default(now())   
+  expirationDate  DateTime
+  allProjects     Boolean
+
+@@id([guestId,companyId])
+}
+model Project {
+  id Int @id @default(autoincrement())
+  name String
+  description String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accountId   Int       // Define a foreign key referencing Company
+  account     Company @relation(fields: [accountId], references: [id])
+
+  creatorId   Int       // Nouvelle colonne pour stocker l'ID du créateur
+  creator     Creator   // Enumération pour indiquer le créateur (COMPANY ou GUEST
+  
+  resources Resource[]
+  Damages DamageImage[]
+
+}
+
 
 model Resource {
   id Int @id @default(autoincrement())
@@ -63,8 +89,8 @@ model Comment {
   updatedAt     DateTime    @updatedAt
   DamageImageId Int?
   DamageImage   DamageImage? @relation(fields: [DamageImageId], references: [id])
-  AccountCompanyId Int?
-  AccountCompany   AccountCompany? @relation(fields: [AccountCompanyId], references: [id])
+  CompanyId Int?
+  Company   Company? @relation(fields: [CompanyId], references: [id])
   GuestId Int?
   Guest   Guest? @relation(fields: [GuestId], references: [id])
 }
