@@ -14,32 +14,37 @@ router.delete('/delete/:id', deleteProject);
 
 // Route POST pour recevoir les données du formulaire multipart
 router.post('/create_project', multerUploadAllMedia.any(), async (req, res) => {
-    const { companyId, guestId } = req.body;
+ 
     requestData = req.body;
     try {
         console.log(requestData)
-        const projectData = {
-            ...requestData,
-            account: {
-                connect: {
-                    id: companyId
-                }
-            }
-        };
-
-        if (guestId) {
-            projectData.guestcreator = {
-                connect: {
-                    id: guestId
-                }
-            };
+        console.log(req.files)
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
         }
+        // const projectData = {
+        //     ...requestData,
+        //     account: {
+        //         connect: {
+        //             id: companyId
+        //         }
+        //     }
+        // };
 
-        const newProject = await prisma.project.create({
-            data: projectData
-        });
 
-        res.status(201).json("dddd");
+        // if (guestId) {
+        //     projectData.guestcreator = {
+        //         connect: {
+        //             id: guestId
+        //         }
+        //     };
+        // }
+
+        // const newProject = await prisma.project.create({
+        //     data: projectData
+        // });
+
+        // res.status(201).json("dddd");
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Error creating project' });
