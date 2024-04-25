@@ -4,28 +4,7 @@ const prisma = new PrismaClient();
 const {createResourceForProject} = require('../controller/resource')
 
 
-const createProject = async (req, res) => {
-             
-    const requestData = req.body;
-    const companyId = req.user.id;  // Assuming req.user.id contains the id of the company
 
-    try {
-        const newProject = await prisma.project.create({
-            data: {
-                ...requestData, 
-                account: {  
-                    connect: {
-                        id: companyId
-                    }
-                }
-            }
-        });
-        res.status(201).json(newProject);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Error creating project' });
-    }
-}
       
 const getProjects = async (req,res) => {
     const accountId = req.user.id; 
@@ -101,7 +80,169 @@ const addResource = async (req, res) => {
     }
 }
 
+//******************************************* */
+// Fonction pour créer une nouvelle infrastructure
+async function createNewInfrastructure(formInfrastructure, infrastructureImage) {
+    try {
+        const newInfrastructure = await prisma.infrastructure.create({
+            data: {
+                ...formInfrastructure,
+                constructionDate: new Date(formInfrastructure.constructionDate),
+                span: parseInt(formInfrastructure.span, 10),
+                length: parseInt(formInfrastructure.length, 10),
+                image: infrastructureImage?.originalname
+            }
+        });
+        return newInfrastructure.id;
+    } catch (error) {
+        throw new Error("Erreur lors de la création de l'infrastructure :", error);
+    }
+}
+// Fonction pour metre a jour une infrasructure 
+async function updateExistingInfrastructure(projectId,formInfrastructure, infrastructureImage) {
+    try {
+        const project = await prisma.project.findUnique({
+            where: {
+              id: projectId,
+            },
+            include: {
+              infrastructure: true,
+            },
+          });
+        const newInfrastructure = await prisma.infrastructure.update({
+            where: {
+                id: project.infrastructure.id,
+            },
+            data: {
+                ...formInfrastructure,
+                constructionDate: new Date(formInfrastructure.constructionDate),
+                span: parseInt(formInfrastructure.span, 10),
+                length: parseInt(formInfrastructure.length, 10),
+                image: infrastructureImage?.originalname
+            }
+        });
+        return newInfrastructure.id;
+    } catch (error) {
+        throw new Error("Erreur lors de la mise a jour de l'infrastructure :", error);
+    }
+}
+// Fonction pour créer un nouveau projet d'inspection
 
+async function createNewProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId) {
+    try {
+        let infrId;
+
+        if (formInfrastructure.id) {
+            // Infrastructure existante
+            infrId = formInfrastructure.id;
+        } else {
+            // Nouvelle infrastructure
+            infrId = await createNewInfrastructure(formInfrastructure, infrastructureImage);
+        }
+
+        // Créer un nouveau projet
+        return await prisma.project.create({
+            data: {
+                name: formProject.name,
+                description: formProject.description,
+                companyId: companyId,
+                creatorId: guestId | companyId,
+                infrastructureId: infrId,
+            },
+        });
+    } catch (error) {
+        throw new Error("Erreur lors de la création du projet :", error);
+    }
+}
+
+// Fonction pour mettre à jour un projet d'inspection existant
+async function updateExistingProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId) {
+    try {
+        const project = await prisma.project.findUnique({
+            where: { id: formProject.id },
+            include: { infrastructure: true },
+        });
+
+        let infrId;
+        if (formInfrastructure.id) {
+            // Infrastructure existante
+            infrId = formInfrastructure.id;
+        } else {
+            // Nouvelle infrastructure
+            infrId = await updateExistingInfrastructure(formProject.id,formInfrastructure, infrastructureImage);
+        }
+
+        // Mettre à jour le projet existant
+        return await prisma.project.update({
+            where: { id: formProject.id },
+            data: {
+                name: formProject.name,
+                description: formProject.description,
+                companyId: companyId,
+                creatorId: guestId | companyId,
+                infrastructureId: infrId,
+            },
+        });
+    } catch (error) {
+        throw new Error("Erreur lors de la mise à jour du projet :", error);
+    }
+}
+
+// Fonction pour gérer la création des ressources à partir des fichiers d'inspection
+async function createInspectionResources(inspectionFiles, projectId) {
+    try {
+        if (!inspectionFiles || inspectionFiles.length === 0) return;
+
+        return Promise.all(inspectionFiles.map(async file => {
+            const existingResource = await prisma.resource.findFirst({
+                where: {
+                    name: file.originalname,
+                    projectId: projectId
+                }
+            });
+
+            if (!existingResource) {
+                return prisma.resource.create({
+                    data: {
+                        type: file.mimetype,
+                        name: file.originalname,
+                        path: file.path,
+                        projectId: projectId
+                    }
+                });
+            }
+        }));
+    } catch (error) {
+        throw new Error("Erreur lors de la création des ressources : " + error.message);
+    }
+}
+const createProject = async (req, res) => {
+    const inspectionFiles = req.files.filter(file => file.fieldname === 'inspectionFile');
+    const infrastructureImage = req.files.find(file => file.fieldname === 'infrastructureImage');
+    const formProject = JSON.parse(req.body.project);
+    const formInfrastructure = JSON.parse(req.body.infrastructure);
+    const { companyId, guestId } = req.user;
+
+    try {
+        let updatedProject;
+
+        if (!formProject.id) {
+            updatedProject = await createNewProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId);
+        } else {
+            updatedProject = await updateExistingProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId);
+        }
+
+        // Créer les ressources d'inspection
+        if (inspectionFiles && inspectionFiles.length > 0) {
+            await createInspectionResources(inspectionFiles, updatedProject.id);
+        }
+
+        res.status(200).json({ message: 'Projet créé ou mis à jour avec succès', projectId: updatedProject.id });
+    } catch (error) {
+        console.error("Erreur lors de la création ou de la mise à jour du projet :", error);
+        res.status(500).json({ error: 'Erreur lors de la création ou de la mise à jour du projet' });
+    }
+}
 
 
 module.exports = {createProject, updateProject, getProjects, deleteProject,addResource};

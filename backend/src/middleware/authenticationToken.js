@@ -10,7 +10,7 @@ const authenticateToken = asyncHandler(async (req, res, next) => {
       const { ACCESS_TOKEN_SECRET } = process.env;
       const decoded = await jwt.verify(authHeader[1], ACCESS_TOKEN_SECRET);
       req.user = decoded.user;
-      console.log(req.user);
+      // console.log(req.user);
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {

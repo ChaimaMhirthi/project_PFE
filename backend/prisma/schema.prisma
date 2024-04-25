@@ -7,10 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Creator {
-  COMPANY
-  GUEST
-}
+
 
 enum Privilege {
   RO
@@ -24,13 +21,13 @@ model Company {
   lastname  String
   phone     String
   email     String @unique
-  
-  company   String
-  country   String
-  city      String
+
+  company String
+  country String
+  city    String
 
   password String
- 
+
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   projects  Project[]
@@ -67,24 +64,29 @@ model Invitation {
 }
 
 model Project {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
-  description String
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  accountId Int // Define a foreign key referencing Company
-  account   Company @relation(fields: [accountId], references: [id])
+  companyId Int // Define a foreign key referencing Company
+  company   Company @relation(fields: [companyId], references: [id])
 
   creatorId Int // Nouvelle colonne pour stocker l'ID du créateur
-  creator   Creator // Enumération pour indiquer le créateur (COMPANY ou GUEST
-
   resources Resource[]
   Damages   DamageImage[]
+
+  infrastructureId Int?
+  infrastructure   Infrastructure? @relation(fields: [infrastructureId], references: [id])
+
 }
+
+
 
 model Resource {
   id        Int      @id @default(autoincrement())
+  name String
   type      String
   path      String
   createdAt DateTime @default(now())
@@ -93,18 +95,32 @@ model Resource {
   projectId Int
   project   Project @relation(fields: [projectId], references: [id])
 }
-
+model Infrastructure {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  locationAddress    String?
+  constructionDate   DateTime?
+  description        String?
+  type               String
+  country            String?
+  city               String?
+  span               Int?
+  length             Int?
+  image             String?
+  InspectionProjects Project[]
+}
 model Comment {
-  id            Int          @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   description   String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  DamageImageId Int?
-  DamageImage   DamageImage? @relation(fields: [DamageImageId], references: [id])
-  CompanyId     Int?
-  Company       Company?     @relation(fields: [CompanyId], references: [id])
-  GuestId       Int?
-  Guest         Guest?       @relation(fields: [GuestId], references: [id])
+  damageImageId Int?
+  DamageImage   DamageImage? @relation(fields: [damageImageId], references: [id])
+  companyId     Int?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  guestId       Int?
+  guest         Guest?       @relation(fields: [guestId], references: [id])
 }
 
 model DamageImage {
@@ -118,10 +134,10 @@ model DamageImage {
   damageImageCroppedname  String?
   imagesPath              String?
   modelPrediction         Int?
-  DomageIdModel           Int?
-  DamageClassIdModel      Int?
+  domageIdModel           Int?
+  damageClassIdModel      Int?
   detectionTimestampVideo DateTime?
-  ProjectId               Int
-  Comments                Comment[]
-  Project                 Project   @relation(fields: [ProjectId], references: [id])
+  projectId               Int
+  comments                Comment[]
+  project                 Project   @relation(fields: [projectId], references: [id])
 }

@@ -53,40 +53,47 @@ function handleMulterError(err, req, res, next) {
     next();
 }
 
-const multerUploadAllMedia=multer({
-    storage:multer.diskStorage({
-    destination: function (req, file, cb) {
-        let uploadPath = '';
-        if (file.mimetype.startsWith('image/')) {
-            uploadPath = 'uploads/images/';
-        } else if (file.mimetype.startsWith('video/')) {
-            uploadPath = 'uploads/videos/';
-        } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
-            uploadPath = 'uploads/flightpaths/';
-        }
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    }
-    
-}),
+const multerUploadAllMedia = multer({
+    storage: multer.diskStorage({
+        destination: function (req, file, cb) {
+            let uploadPath = '';
+            if (file.fieldname == "inspectionFile") {
+                if (file.mimetype.startsWith('image/')) {
+                    uploadPath = 'uploads/inspectionImages/';
+                } else if (file.mimetype.startsWith('video/')) {
+                    uploadPath = 'uploads/inspectionVideos/';
+                } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
+                    uploadPath = 'uploads/inspectionFlightpaths/';
+                }
+            }
+            else if (file.fieldname == "infrastructureImage") {
+                uploadPath = 'uploads/infrastructureImages/';
 
-fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
-        // Accepter les images PNG et JPG
-        cb(null, true);
-    } else if (file.mimetype.startsWith('video/')) {
-        // Accepter les vidéos MP4
-        cb(null, true);
-    } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
-        // Accepter les fichiers texte et JSON
-        cb(null, true); 
-        
-    } else {
-        // Rejeter les autres types de fichiers
-        cb(new Error('Unsupported file type'));
+            }
+            cb(null, uploadPath);
+
+        },
+        filename: function (req, file, cb) {
+            cb(null, file.originalname);
+        }
+
+    }),
+
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype.startsWith('image/')) {
+            // Accepter les images PNG et JPG
+            cb(null, true);
+        } else if (file.mimetype.startsWith('video/')) {
+            // Accepter les vidéos MP4
+            cb(null, true);
+        } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
+            // Accepter les fichiers texte et JSON
+            cb(null, true);
+
+        } else {
+            // Rejeter les autres types de fichiers
+            cb(new Error('Unsupported file type'));
+        }
     }
-}
 })
-module.exports = {multerConfigImage,multerConfigVideo,multerUploadAllMedia,handleMulterError} ;
+module.exports = { multerConfigImage, multerConfigVideo, multerUploadAllMedia, handleMulterError };

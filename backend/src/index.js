@@ -5,6 +5,8 @@ const authRouter        = require('./routes/auth');
 const projectRouter     = require('./routes/project');
 const companyRouter     = require('./routes/company');
 const commentRouter     = require('./routes/comment');
+const infrastructureRouter     = require('./routes/infrastructure');
+
 const bodyParser = require('body-parser');
 
 const authenticateToken = require('./middleware/authenticationToken');
@@ -31,14 +33,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use('/auth', authRouter);
+app.use('/get', authenticateToken,infrastructureRouter);
 
-app.use('/project', projectRouter);
+app.use('/project', authenticateToken,projectRouter);
 app.use('/company', authenticateToken, companyRouter);
 app.use('/comment', authenticateToken, commentRouter);
+
+
 // app.use(authenticateToken,resourceRouter)
 
 
-/////////////////////////////
 
 
 

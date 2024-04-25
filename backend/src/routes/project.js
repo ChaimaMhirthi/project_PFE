@@ -1,55 +1,23 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const router = require('express').Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { multerConfigImage, multerConfigVideo,multerUploadAllMedia, handleMulterError } = require('../config/multer');
+const { multerConfigImage, multerConfigVideo, multerUploadAllMedia, handleMulterError } = require('../config/multer');
 const { createProject, getProjects, updateProject, deleteProject, addResource } = require('../controller/project');
 
+// Obtenir les projets
 router.get('/get', getProjects);
+
+// Mettre à jour un projet
 router.put('/update/:id', updateProject);
+
+// Supprimer un projet
 router.delete('/delete/:id', deleteProject);
 
-// Configuration de multer pour les fichiers téléchargés
-
-
-// Route POST pour recevoir les données du formulaire multipart
-router.post('/create_project', multerUploadAllMedia.any(), async (req, res) => {
- 
-    requestData = req.body;
-    try {
-        console.log(requestData)
-        console.log(req.files)
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: 'No files uploaded' });
-        }
-        // const projectData = {
-        //     ...requestData,
-        //     account: {
-        //         connect: {
-        //             id: companyId
-        //         }
-        //     }
-        // };
-
-
-        // if (guestId) {
-        //     projectData.guestcreator = {
-        //         connect: {
-        //             id: guestId
-        //         }
-        //     };
-        // }
-
-        // const newProject = await prisma.project.create({
-        //     data: projectData
-        // });
-
-        // res.status(201).json("dddd");
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Error creating project' });
-    }
-});
+// Route POST pour créer un projet avec des ressources associées
+router.post('/create_project', multerUploadAllMedia.any(), createProject);
 
 
 module.exports = router;

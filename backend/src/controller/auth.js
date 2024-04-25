@@ -57,7 +57,7 @@ const loginCompany = asyncHandler(async (req, res) => {
         const accessToken = jwt.sign(
             { 
                 user: { 
-                    id: user.id,
+                    companyId: user.id,
                     type: 'company' // Ajoutez le type d'utilisateur 
                 } 
             },
