@@ -91,18 +91,22 @@ console.log({infrasId, InfrastructureForm});
 
 const getInfrastructures = async (req, res) => {
   const { companyId} = req.user;
+  console.log( {companyId})
 
   try {
     // Récupérer les infrastructures associées aux projets de l'entreprise
-    const infrastructure = await prisma.infrastructure.findMany({
+    const infrastructures = await prisma.infrastructure.findMany({
       where: {
-        id: companyId, // Utilisez `companyId` comme critère de recherche
+        company: {
+          id: companyId,
+        },
       },
     });
 
 
-    
-    res.json(infrastructure); // Retourner les infrastructures uniques
+    console.log( {infrastructures})
+    res.status(200).json({ message: 'recupereation avec succes des infrastructures ' ,infrastructures:infrastructures});
+
   } catch (error) {
     console.error('Erreur lors de la récupération des infrastructures :', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
