@@ -1,6 +1,10 @@
 const multer = require('multer');
 const path = require('path');
 
+const config = require('../config.json');
+const sharedRepo = config.sharedRepo;
+console.log("sharedRepo ",sharedRepo);
+
 const multerConfigImage = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
@@ -57,21 +61,15 @@ const multerUploadAllMedia = multer({
     storage: multer.diskStorage({
         destination: function (req, file, cb) {
             let uploadPath = '';
-            if (file.fieldname == "inspectionFile") {
+                console.log("sharedRepo",sharedRepo)
                 if (file.mimetype.startsWith('image/')) {
-                    uploadPath = 'uploads/inspectionImages/';
+                    uploadPath = path.join(sharedRepo, "/uploads/inspectionImages/");
                 } else if (file.mimetype.startsWith('video/')) {
-                    uploadPath = 'uploads/inspectionVideos/';
+                    uploadPath = path.join(sharedRepo, "/uploads/inspectionVideos/");
                 } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
-                    uploadPath = 'uploads/inspectionFlightpaths/';
+                    uploadPath = path.join(sharedRepo, "/uploads/inspectionFlightpaths/");
                 }
-            }
-            else if (file.fieldname == "infrastructureImage") {
-                uploadPath = 'uploads/infrastructureImages/';
-
-            }
             cb(null, uploadPath);
-
         },
         filename: function (req, file, cb) {
             cb(null, file.originalname);
@@ -96,4 +94,18 @@ const multerUploadAllMedia = multer({
         }
     }
 })
-module.exports = { multerConfigImage, multerConfigVideo, multerUploadAllMedia, handleMulterError };
+
+const multerUploadInfrastrImage= multer({
+   
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            let uploadPath =path.join(sharedRepo, "/uploads/infrastructureImages/");
+            cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+            cb(null, file.originalname);
+        }
+    }),
+   
+});
+module.exports = { multerConfigImage, multerConfigVideo, multerUploadAllMedia,multerUploadInfrastrImage, handleMulterError };

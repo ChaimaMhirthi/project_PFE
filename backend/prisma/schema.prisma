@@ -7,14 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
-enum Privilege {
-  RO
-  RW
-  RWC
-}
-
 model Company {
   id        Int    @id @default(autoincrement())
   firstname String
@@ -28,76 +20,63 @@ model Company {
 
   password String
 
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  projects  Project[]
-  comments  Comment[]
-  guests    Invitation[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  projects       Project[]
+  comments       Comment[]
+  employee       Employee[]
+  infrastructure Infrastructure[]
 }
 
-model Guest {
-  id        Int      @id @default(autoincrement())
+model Employee {
+  id        Int                         @id @default(autoincrement())
   firstname String
   lastname  String
-  email     String   @unique
+  email     String                      @unique
   phone     String
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+  project   EmployeeProjectAssignment[]
+  comments  Comment[]
+  role      Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
 
-  comments Comment[]
-  company  Invitation[]
+  companyId Int
+  company   Company @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
 }
 
-model Invitation {
-  guest          Guest     @relation(fields: [guestId], references: [id])
-  guestId        Int
-  company        Company   @relation(fields: [companyId], references: [id])
-  companyId      Int
-  privilege      Privilege
-  authProjects   Json
-  createdAt      DateTime  @default(now())
-  expirationDate DateTime
-  allProjects    Boolean
+model EmployeeProjectAssignment {
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
+  project    Project  @relation(fields: [projectId], references: [id])
+  projectId  Int
+  createdAt  DateTime @default(now())
+  lastUpdate DateTime @default(now())
 
-  @@id([guestId, companyId])
+  @@id([employeeId, projectId])
 }
 
 model Project {
-  id          Int       @id @default(autoincrement())
-  name        String
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  companyId Int // Define a foreign key referencing Company
-  company   Company @relation(fields: [companyId], references: [id])
+  status      Boolean? @default(false)
+  companyId   Int // Define a foreign key referencing company
+  company     Company  @relation(fields: [companyId], references: [id])
 
   creatorId Int // Nouvelle colonne pour stocker l'ID du créateur
   resources Resource[]
-  Damages   DamageImage[]
 
-  infrastructureId Int?
-  infrastructure   Infrastructure? @relation(fields: [infrastructureId], references: [id])
-
+  employee         EmployeeProjectAssignment[]
+  infrastructureId Int
+  infrastructure   Infrastructure              @relation(fields: [infrastructureId], references: [id])
 }
 
-
-
-model Resource {
-  id        Int      @id @default(autoincrement())
-  name String
-  type      String
-  path      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-}
 model Infrastructure {
   id                 Int       @id @default(autoincrement())
-  name               String
+  name               String    @unique
   locationAddress    String?
   constructionDate   DateTime?
   description        String?
@@ -106,38 +85,56 @@ model Infrastructure {
   city               String?
   span               Int?
   length             Int?
-  image             String?
+  image              String?
+  companyId          Int
+  company            Company   @relation(fields: [companyId], references: [id])
   InspectionProjects Project[]
 }
+
+model Resource {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  path      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  Damages Damage[]
+}
+
 model Comment {
   id Int @id @default(autoincrement())
 
-  description   String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  damageImageId Int?
-  DamageImage   DamageImage? @relation(fields: [damageImageId], references: [id])
-  companyId     Int?
-  company       Company?     @relation(fields: [companyId], references: [id])
-  guestId       Int?
-  guest         Guest?       @relation(fields: [guestId], references: [id])
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  damageId    Int?
+  Damage      Damage?   @relation(fields: [damageId], references: [id])
+  companyId   Int?
+  company     Company?  @relation(fields: [companyId], references: [id])
+  employeeId  Int?
+  employee    Employee? @relation(fields: [employeeId], references: [id])
 }
 
-model DamageImage {
-  id                      Int       @id @default(autoincrement())
-  type                    String
-  dangerDegree            Int?
-  description             String?
-  position                String?
-  videoFrameNumber        Int
-  damageImagename         String?
-  damageImageCroppedname  String?
+model Damage {
+  id           Int     @id @default(autoincrement())
+  type         String?
+  dangerDegree Int?
+  description  String?
+  position     String?
+
+  videoFrameNumber        Int?
+  DetectResultImage       String?
+  croppedDamageImage      String?
   imagesPath              String?
-  modelPrediction         Int?
-  domageIdModel           Int?
+  confidence              Float?
   damageClassIdModel      Int?
+  trackingVideoId         Int?
   detectionTimestampVideo DateTime?
-  projectId               Int
   comments                Comment[]
-  project                 Project   @relation(fields: [projectId], references: [id])
+  resourceId              Int
+  resource                Resource  @relation(fields: [resourceId], references: [id])
 }

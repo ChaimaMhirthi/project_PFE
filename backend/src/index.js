@@ -1,30 +1,36 @@
 const express = require('express');
 const cors = require('cors');
-const app  = express();
-const authRouter        = require('./routes/auth');
-const projectRouter     = require('./routes/project');
-const companyRouter     = require('./routes/company');
-const commentRouter     = require('./routes/comment');
-const infrastructureRouter     = require('./routes/infrastructure');
+const authRouter = require('./routes/auth');
+const projectRouter = require('./routes/project');
+const companyRouter = require('./routes/company');
+const commentRouter = require('./routes/comment');
+const resourceRouter = require('./routes/inspectionResource');
 
+const infrastructureRouter = require('./routes/infrastructure');
+const result = require('./routes/results');
 const bodyParser = require('body-parser');
-
 const authenticateToken = require('./middleware/authenticationToken');
-const multer = require('multer');
-
+const path = require('path'); // Import du module path
+const config = require('./config.json');
 
 const port = process.env.PORT || 3000;
 const { PrismaClient } = require('@prisma/client');
 
+const app = express();
+
+const sharedRepo = config.sharedRepo;
+
+app.use(express.static(sharedRepo));
+
 const prisma = new PrismaClient();
 
 async function testConnection() {
-  try {
-    await prisma.$connect();
-    console.log('Connected to the database');
-  } catch (error) {
-    console.error('Error connecting to the database:', error);
-  } 
+    try {
+        await prisma.$connect();
+        console.log('Connected to the database');
+    } catch (error) {
+        console.error('Error connecting to the database:', error);
+    }
 }
 
 app.use(express.json());
@@ -33,24 +39,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use('/auth', authRouter);
-app.use('/get', authenticateToken,infrastructureRouter);
+app.use('/infrastructure',authenticateToken,infrastructureRouter);
 
-app.use('/project', authenticateToken,projectRouter);
+app.use('/project', authenticateToken, projectRouter);
 app.use('/company', authenticateToken, companyRouter);
 app.use('/comment', authenticateToken, commentRouter);
+app.use('/results', result);
 
+console.log(__dirname);
 
-// app.use(authenticateToken,resourceRouter)
+module.exports = sharedRepo;
 
-
-
-
-
-
-
-app.listen(port, () =>{
-  testConnection();
-
-  console.log(`🚀 Server ready at: http://localhost:${port}`)}
-
-);
+app.listen(port, () => {
+    testConnection();
+    console.log(`🚀 Server ready at: http://localhost:${port}`);
+});

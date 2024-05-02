@@ -19,16 +19,16 @@ const registerCompany = async (req, res) => {
 
         // Création d'une nouvelle entreprise avec Prisma
 
-        const newCompany = await prisma.company.create({
+        const newcompany = await prisma.company.create({
             data: {
                 ...rest,
                 password: hashedPassword
             }
         });
-        console.log('After creating company with Prisma', newCompany);
+        console.log('After creating company with Prisma', newcompany);
 
         // Renvoi d'une réponse avec le nouvel objet créé
-        return res.status(201).json(newCompany);
+        return res.status(201).json(newcompany);
     } catch (error) {
         // Gestion des erreurs
         console.error('Error creating company:', error);
@@ -58,11 +58,10 @@ const loginCompany = asyncHandler(async (req, res) => {
             { 
                 user: { 
                     companyId: user.id,
-                    type: 'company' // Ajoutez le type d'utilisateur 
-                } 
+             } 
             },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "60m" }
+            { expiresIn: "24h" }
         );
         let userInfo = { ...user, password: undefined };
         res.status(201).json( {accessToken} );
