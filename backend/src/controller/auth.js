@@ -1,15 +1,247 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const dotenv = require('dotenv');
+const crypto = require('crypto');
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require("express-async-handler");
+const nodemailer = require('nodemailer');
+dotenv.config();
 
-const registerCompany = async (req, res) => {
+
+// Fonction pour générer un OTP aléatoire
+
+
+const generateOTP = () => {
+    const randomNum = crypto.randomInt(0, 999999);
+
+    // Formater le nombre pour s'assurer qu'il a toujours 6 chiffres
+    const randomDigits = randomNum.toString().padStart(6, '0');
+
+    return randomDigits;
+};
+const generateResetToken = () => {
+    return crypto.randomBytes(20).toString('hex');
+};
+const sendResetByEmail = async (email, resetToken, entityType) => {
+    try {
+        // Configuration du service SMTP
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'hammaabbes5@gmail.com',
+                pass: 'hpwj epfo zdkn zwdl'
+            }
+        });
+
+        // Lien de réinitialisation du mot de passe avec le token
+        const resetLink = `${process.env.RESET_PASSWORD_LINK}?token=${encodeURIComponent(resetToken)}&user=${encodeURIComponent(entityType)}`;
+
+        // Options de l'e-mail
+        const mailOptions = {
+            from: 'hammaabbes5@gmail.com',
+            to: email,
+            subject: 'Réinitialisation de mot de passe',
+            text: `Pour réinitialiser votre mot de passe, veuillez cliquer sur le lien suivant : ${resetLink}`,
+            html: `<p>Pour réinitialiser votre mot de passe, veuillez cliquer sur le lien suivant :</p><p><a href="${resetLink}">Click here</a></p>`
+        };
+
+        // Envoi de l'e-mail
+
+        const info = await transporter.sendMail(mailOptions);        return info;
+    } catch (error) {
+        console.error('Error sending reset email:', error);
+        throw new Error('Error sending reset email');
+    }
+};
+const resendOTPByEmail = async (req, res, entityType) => {
+    const { email } = req.body;
+    try {
+        const user = await getUserByEmail(email, entityType);
+        if (!user) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+        if (user.accountVerified ) {            return res.status(409).json({ error: 'Account is already valid ' });
+        }
+        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now()))  {            return res.status(401).json({ error: 'Please check your email, If the email is not received, please try again later ' });
+        }
+        const otp = generateOTP();        // Stockage de l'OTP dans la base de données
+        await updateUser({
+            where: { id: user.id },
+            data: {
+                otp: otp,
+                otpExpiresAt: new Date(Date.now() + 900000),//15min :date d'expiration
+            }
+        }, entityType);
+        // Appeler la fonction sendOTPByEmail avec les paramètres requis
+        await sendOTPByEmail(email, otp,entityType);
+
+        // Envoyer une réponse réussie
+        res.status(200).json({ message: 'OTP resent successfully' });
+    } catch (error) {
+        // Gérer les erreurs
+        console.error('Error resending OTP:', error);
+        res.status(500).json({ error: 'Error resending OTP' });
+    }
+}
+
+const sendOTPByEmail = async (email, otp,entityType) => {
+    try {
+        // Configuration du service SMTP
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'hammaabbes5@gmail.com',
+                pass: 'hpwj epfo zdkn zwdl'
+            }
+        });
+
+        const verificationLink = `${process.env.OTP_VERIFICATION_LINK}?email=${encodeURIComponent(email)}&user=${encodeURIComponent(entityType)}`;
+        // Options de l'email
+        const mailOptions = {
+            from: 'hammaabbes5@gmail.com',
+            to: email,
+            subject: 'Votre code OTP',
+            text: ``,
+            html: `Bonjour,<br><br>Cliquez sur le lien suivant pour vérifier votre compte : <a href="${verificationLink}">Click here</a><br><br><h2>Votre code OTP est : ${otp}</h2>`
+
+        };
+
+        // Envoi de l'email
+        const info = await transporter.sendMail(mailOptions);        return info;
+    } catch (error) {
+        console.error('Error sending OTP:', error);
+        let errorMessage = 'Erreur lors de l\'envoi de l\'email';
+        if (error.code === 'EAUTH') {
+            errorMessage = 'Erreur d\'authentification lors de l\'envoi de l\'email. Veuillez vérifier vos informations d\'identification SMTP.';
+        } else if (error.code === 'EENVELOPE') {
+            errorMessage = 'Erreur d\'enveloppe lors de l\'envoi de l\'email. Veuillez vérifier les destinataires et l\'expéditeur de l\'email.';
+        }
+        throw new Error(errorMessage);
+    }
+};
+
+const verifyOTP = async (req, res, entityType) => {
+
+    const { email, otp } = req.body;
+    try {
+        // Rechercher l'utilisateur dans la base de données avec l'email
+        const user = await getUserByEmail(email, entityType);
+
+        if (!user) {
+            return res.status(404).json({ error: 'Account expired' });
+        }        // Vérifier si le" code OTP est correct et non expiré
+        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now())) {            if (!(user.otp === otp)) {
+                { return res.status(401).json({ error: 'Invalid OTP code  ' }); }
+            }         }
+       
+        else {
+            return res.status(401).json({ error: 'Expired OTP code ,You can request a new password reset link  OTP code ' });
+        }
+
+        await updateUser({
+            where: {
+                id: user.id
+            },
+            data: {
+                accountVerified: true,
+                otp: null,
+                otpExpiresAt: null
+            }
+        }, entityType);
+
+        return res.status(200).json({ message: 'Email successfully verified' });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'There was an error verifying the email' });
+    }
+}
+const forgotPassword = async (req, res, entityType) => {    const { email ,password} = req.body;
+    try {
+        // Vérifier si l'utilisateur existe
+        const user = await getUserByEmail(email, entityType);        if (!user) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+        if (user.resetToken && user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date(Date.now())) {
+            // Un token de réinitialisation existe et n'a pas expiré
+            return res.status(401).json({ error: 'A password reset link has already been sent. Please check your email' });
+        }
+
+        // Générer un token de réinitialisation de mot de passe
+        const resetToken = generateResetToken();
+        // Stocker le token dans la base de données avec l'ID de l'utilisateur et une date d'expiration
+        if (resetToken) {
+            await updateUser({
+                where: {
+                    email: email
+                },
+                data: {
+                    resetToken: resetToken,
+                    resetTokenExpiresAt: new Date(Date.now() + 90000000),//15min :date d'expiration
+                }
+            }, entityType);
+        }
+        // Envoyer un e-mail avec le lien de réinitialisation contenant le token
+        await sendResetByEmail(email, resetToken, entityType);
+        res.status(200).json({ message: 'Password reset email sent successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error sending reset email' });
+    }
+}
+const resetPassword = async (req, res, entityType) => {    const { token, newPassword } = req.body;    try {
+        if (!token) {
+            return res.status(400).json({ error: 'Missing Token' });
+        }
+        // Vérifier si le token de réinitialisation est valide et non expiré
+        const user = await prisma[entityType].findUnique({
+            where: { resetToken: token }
+        });
+        if (!user) {
+            return res.status(404).json({ error: 'Authentication failed. Please check your email and password and try again' });
+        }        if ((user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now()))) {
+            if (user.resetToken !== token) {
+                return res.status(401).json({ error: 'ivalid reset token' });
+
+            }
+
+        }
+        else {
+
+            return res.status(401).json({ error: 'expired reset token You can request a new password reset link ' });
+        }
+        // Mettre à jour le mot de passe de l'utilisateur
+        const hashedPassword = await bcrypt.hash(newPassword, 10);        const passwordsMatch = await bcrypt.compare(user.password, hashedPassword);
+        if (passwordsMatch) {
+            return res.status(400).json({ error: 'Please enter a new password that you havent used before' });
+           }
+
+        await prisma[entityType].update({
+            where: { resetToken: token },
+            data: {
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiresAt: null,
+                accountVerified: true,
+                otp: null,
+                otpExpiresAt: null
+
+            }
+        });
+        res.status(200).json({ message: 'Password reset successfully' });
+    } 
+    catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ error: 'Error resetting password' });
+    }
+};
+
+const registerUser = async (req, res, entityType) => {
     const { password, ...rest } = req.body;
     try {
         // Vérification de l'existence de l'utilisateur avec l'email fourni
-        const user = await getUserByEmail(rest.email);
+        const user = await getUserByEmail(rest.email, entityType);
         if (user) {
             return res.status(400).json({ error: 'Email already in use' });
         }
@@ -18,61 +250,86 @@ const registerCompany = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Création d'une nouvelle entreprise avec Prisma
+        const newUser = await createUser({
+            ...rest,
+            password: hashedPassword
+        }, entityType);
 
-        const newcompany = await prisma.company.create({
+        // Génération de l'OTP en appelant la fonction importée
+        const otp = generateOTP();
+
+        // Stockage de l'OTP dans la base de données
+        await updateUser({
+            where: { id: newUser.id },
             data: {
-                ...rest,
-                password: hashedPassword
+                otp: otp,
+                otpExpiresAt: new Date(Date.now() + 900000),//15min :date d'expiration
             }
-        });
-        console.log('After creating company with Prisma', newcompany);
+        }, entityType);
+
+        // Envoi de l'OTP par email à l'utilisateur
+        await sendOTPByEmail(rest.email, otp,entityType);
 
         // Renvoi d'une réponse avec le nouvel objet créé
-        return res.status(201).json(newcompany);
+        res.status(200).json({ message: 'succes register and sending otp ', newUser });
     } catch (error) {
         // Gestion des erreurs
-        console.error('Error creating company:', error);
-        return res.status(500).json({ error: 'Error creating company' });
+        console.error('Error creating user:', error);
+        return res.status(500).json({ error: error.message }); // Renvoi de l'erreur au client
     }
 };
 
-const loginCompany = asyncHandler(async (req, res) => {
-    const userData = req.body;
+const login = asyncHandler(async (req, res, entityType) => {
+    const { email, password } = req.body;
+
+    // Validation des données d'entrée
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Invalid request. Please provide email and password.' });
+    }
+
     try {
-        
-        if (!userData.email || !userData.password) {
-            res.status(400).json({ error: 'Invalid request please fill email and password fields' });
-        }
+        // Récupération de l'utilisateur par e-mail
+        const user = await getUserByEmail(email, entityType);
 
-        const user = await getUserByEmail(userData.email);
         if (!user) {
-            res.status(400).json({ error: 'Invalid email' });
+            return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
         }
 
-        const match = await bcrypt.compare(userData.password, user.password);
+
+        // Vérification du mot de passe
+        const match = await bcrypt.compare(password, user.password);
+
         if (!match) {
-            res.status(400).json({ error: 'Invalid password' });
+            return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
+        }
+        // Vérification si le compte de l'utilisateur est vérifié
+        if (!user.accountVerified) {
+            return res.status(401).json({ error: 'Account not verified' });
         }
 
+        // Génération du jeton d'authentification JWT
         const accessToken = jwt.sign(
-            { 
-                user: { 
-                    companyId: user.id,
-             } 
+            {
+                user: {
+                    userId: user.id,
+                }
             },
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn: "24h" }
         );
-        let userInfo = { ...user, password: undefined };
-        res.status(201).json( {accessToken} );
+
+        // Envoi du jeton d'authentification
+        return res.status(200).json({ accessToken });
     } catch (error) {
-        res.status(500).json({ error: 'Error logging in' });
+        // Gestion des erreurs
+        console.error('Error logging in:', error);
+        return res.status(500).json({ error: 'Error logging in.' });
     }
 });
 
-const getUserByEmail = async (email) => { 
+const getUserByEmail = async (email, entityType) => {
     try {
-        const user = await prisma.company.findUnique({
+        const user = await prisma[entityType].findUnique({
             where: {
                 email: email
             }
@@ -84,4 +341,42 @@ const getUserByEmail = async (email) => {
     }
 }
 
-module.exports = { registerCompany, loginCompany };
+const createUser = async (userData, entityType) => {
+    try {
+        const newUser = await prisma[entityType].create({
+            data: userData
+        });
+        return newUser;
+    } catch (error) {
+        console.error('Error creating user:', error);
+        throw error;
+    }
+}
+
+const updateUser = async (updateData, entityType) => {
+    try {
+        const updatedUser = await prisma[entityType].update(updateData);
+        return updatedUser;
+    } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+    }
+}
+
+
+
+const getEmployeeByEmail = async (email) => {
+    try {
+        const employee = await prisma.employee.findUnique({
+            where: {
+                email: email
+            }
+        });
+        return employee;
+    } catch (error) {
+        console.error('Error getting user:', error);
+        throw error;
+    }
+}
+
+module.exports = { login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail };

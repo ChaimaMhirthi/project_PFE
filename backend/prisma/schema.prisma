@@ -14,12 +14,15 @@ model Company {
   phone     String
   email     String @unique
 
-  company String
-  country String
-  city    String
-
-  password String
-
+  company         String
+  country         String
+  city            String
+  accountVerified Boolean? @default(false)
+ resetToken            String?  @unique
+  resetTokenExpiresAt DateTime? 
+  password       String
+  otp            String?
+  otpExpiresAt     DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   projects       Project[]
@@ -29,20 +32,24 @@ model Company {
 }
 
 model Employee {
-  id        Int                         @id @default(autoincrement())
-  firstname String
-  lastname  String
-  email     String                      @unique
-  phone     String
-  password  String
-  createdAt DateTime                    @default(now())
-  updatedAt DateTime                    @updatedAt
-  project   EmployeeProjectAssignment[]
-  comments  Comment[]
-  role      Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
-
-  companyId Int
-  company   Company @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
+  id                     Int                         @id @default(autoincrement())
+  firstname              String
+  lastname               String
+  email                  String                      @unique
+  phone                  String
+  password               String
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+ resetToken            String?
+  resetTokenExpiresAt DateTime?     
+  otp            String?
+  otpExpiresAt      DateTime?          
+  project                EmployeeProjectAssignment[]
+  comments               Comment[]
+  role                   Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
+  accountVerified        Boolean?                    @default(false)
+  companyId              Int
+  company                Company                     @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
 }
 
 model EmployeeProjectAssignment {
@@ -57,21 +64,30 @@ model EmployeeProjectAssignment {
 }
 
 model Project {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  status      Boolean? @default(false)
-  companyId   Int // Define a foreign key referencing company
-  company     Company  @relation(fields: [companyId], references: [id])
+  id                 Int                         @id @default(autoincrement())
+  name               String                      @unique
+  description        String?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  status             Boolean?                    @default(false)
+  companyId          Int // Define a foreign key referencing company
+  company            Company                     @relation(fields: [companyId], references: [id])
+  creatorId          Int // Nouvelle colonne pour stocker l'ID du créateur
+  resources          Resource[]
+  employee           EmployeeProjectAssignment[]
+  infrastructureId   Int
+  infrastructure     Infrastructure              @relation(fields: [infrastructureId], references: [id])
+  mediaentryfinished Boolean?                    @default(false)
+  aiProcessing       AiProcessingProject?
+}
 
-  creatorId Int // Nouvelle colonne pour stocker l'ID du créateur
-  resources Resource[]
-
-  employee         EmployeeProjectAssignment[]
-  infrastructureId Int
-  infrastructure   Infrastructure              @relation(fields: [infrastructureId], references: [id])
+model AiProcessingProject {
+  id         Int       @id @default(autoincrement())
+  startTime  DateTime  @default(now())
+  finishTime DateTime?
+  status     Boolean?  @default(false)
+  projectId  Int       @unique // Ajouter une clé étrangère pour référencer le projet
+  project    Project   @relation(fields: [projectId], references: [id])
 }
 
 model Infrastructure {
