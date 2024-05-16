@@ -4,8 +4,11 @@ const router = require('express').Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { multerConfigImage, multerConfigVideo, multerUploadAllMedia, handleMulterError } = require('../config/multer');
-const { createProject, getProjects, updateProject, deleteProject ,start_process,getMultiFormStepData} = require('../controller/project');
+const { multerConfigImage, multerConfig_Video_Fp, handleMulterError } = require('../config/multer');
+const { createProject, getProjects, updateProject, deleteProject ,start_process,getMultiFormStepData,getAllEmployee,addRessources,checkData,ConfirmResource} = require('../controller/project');
+const {  canCreateProject,canAddRessources,canStartProcess,canConfirmResource } = require('../middleware/authenticationToken');
+
+
 
 // Obtenir les projets
 router.get('/get', getProjects);
@@ -17,9 +20,14 @@ router.put('/update/:id', updateProject);
 router.delete('/delete/:id', deleteProject);
 
 // Route POST pour créer un projet avec des ressources associées
-router.post('/create_project', multerUploadAllMedia.any(), createProject);
-router.post('/start_process',start_process );
+router.post('/create_project',canCreateProject, createProject);
+router.post('/start_process',canStartProcess,start_process );
 router.get('/multiFormStepData/:projectId',getMultiFormStepData );
+router.get('/get-allemployee',getAllEmployee);
+router.post('/add-images',canAddRessources, multerConfigImage.any(), addRessources);
 
+router.post('/add-videos-flightpaths',canAddRessources, multerConfig_Video_Fp.any(), addRessources);
+router.post('/can-start-prcessing',checkData );
+router.post('/canConfirmResource',canConfirmResource ,ConfirmResource );
 
 module.exports = router;

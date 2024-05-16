@@ -2,14 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const authRouter = require('./routes/auth');
 const projectRouter = require('./routes/project');
-const companyRouter = require('./routes/company');
 const commentRouter = require('./routes/comment');
 const resourceRouter = require('./routes/inspectionResource');
-
+const usersRouter= require('./routes/user');
 const infrastructureRouter = require('./routes/infrastructure');
 const result = require('./routes/results');
 const bodyParser = require('body-parser');
-const authenticateToken = require('./middleware/authenticationToken');
+const {authenticateToken }= require('./middleware/authenticationToken');
 const path = require('path'); // Import du module path
 const config = require('./config.json');
 
@@ -42,9 +41,9 @@ app.use('/auth', authRouter);
 app.use('/infrastructure',authenticateToken,infrastructureRouter);
 
 app.use('/project', authenticateToken, projectRouter);
-app.use('/company', authenticateToken, companyRouter);
 app.use('/comment', authenticateToken, commentRouter);
-app.use('/results', result);
+app.use('/results', authenticateToken  ,result);
+app.use('/users',authenticateToken,usersRouter );
 
 console.log(__dirname);
 

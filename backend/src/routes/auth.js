@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { registerUser, login,verifyOTP,forgotPassword,resetPassword ,resendOTPByEmail } = require('../controller/auth');
+const { getCompanyName,registerUser, login,verifyOTP,forgotPassword,resetPassword ,resendOTPByEmail } = require('../controller/auth');
 
 
 
@@ -18,6 +18,7 @@ router.post('/employee-reset-password', (req, res) => resetPassword(req, res, 'e
 router.post('/employee-forgot-password', (req, res) => forgotPassword(req, res, 'employee'));
 router.post('/employee-resend-otp', (req, res) => resendOTPByEmail(req, res, 'employee'));
 
+router.get('/get-allcompany',getCompanyName);
 
 
 

@@ -4,7 +4,32 @@ const axios = require('axios');
 const { updateExistingInfrastructure ,createNewInfrastructure} = require('../controller/infrastructure');
 
 // const { createResourceForProject } = require('./inspectionResource')
+const getAllEmployee = async (req, res) => {
+    const { companyId  } = req.user;
 
+    try {
+      // Récupérer les infrastructures associées aux projets de l'entreprise
+      const AllEmployee = await prisma.employee.findMany({
+        where: {
+          companyId: companyId,
+        
+        },
+        select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            role:true
+          }
+      });
+  
+  
+      res.status(200).json({ message: 'recupereation avec succes des employee ', AllEmployee });
+  
+    } catch (error) {
+      console.error('Erreur lors de la récupération des employee :', error);
+      res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+  };
 const getMultiFormStepData = async (req, res) => {
     const { projectId } = req.params;
     try {
@@ -172,7 +197,8 @@ async function createInspectionResources(inspectionFiles, projectId) {
         return Promise.all(inspectionFiles.map(async file => {
             const existingResource = await prisma.resource.findFirst({
                 where: {
-                    name: file.originalname,
+                    name: file.fieldname,
+                    type: file.mimetype,
                     projectId: projectId
                 }
             });
@@ -181,7 +207,7 @@ async function createInspectionResources(inspectionFiles, projectId) {
                 return prisma.resource.create({
                     data: {
                         type: file.mimetype,
-                        name: file.originalname,
+                        name: file.fieldname,
                         path: file.path,
                         projectId: projectId
                     }
@@ -193,32 +219,61 @@ async function createInspectionResources(inspectionFiles, projectId) {
     }
 }
 const createProject = async (req, res) => {
-    const inspectionFiles = req.files.filter(file => file.fieldname === 'inspectionFile');
-    const infrastructureImage = req.files.find(file => file.fieldname === 'infrastructureImage');
-    const formProject = JSON.parse(req.body.project);
-    const formInfrastructure = JSON.parse(req.body.infrastructure);
-    const { companyId, guestId } = req.user;
+    const { projectForm, infrastructureID, employeeAssignment } = req.body;
+    const ids = [
+        ...(employeeAssignment.expertId || []),
+        ...(employeeAssignment.inspectorId || []),
+        ...(employeeAssignment.guestsId || [])
+    ];
+    console.log({ ids });
+        console.log({ employeeAssignment });
+
+    const { companyId, employeeId ,role} = req.user;
+    console.log({ companyId, employeeId,role }) ;
 
     try {
-        let updatedProject;
+        // Vérifier si le nom de projet est unique
+        const existingProject = await prisma.project.findUnique({
+            where: {
+                name: projectForm.name
+            }
+        });
 
-        if (!formProject.id) {
-            updatedProject = await createNewProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId);
-        } else {
-            updatedProject = await updateExistingProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId);
+        if (existingProject) {
+            // Si un projet avec le même nom existe déjà, renvoyer une erreur
+            return res.status(400).json({ error: "A project with this name already exists" });
+        }
+        if (!employeeAssignment.expertId || !employeeAssignment.inspectorId) {
+            // Si un projet avec le même nom existe déjà, renvoyer une erreur
+            return res.status(400).json({ error: "you must specify  your team" });
         }
 
-        // Créer les ressources d'inspection
-        if (inspectionFiles && inspectionFiles.length > 0) {
-            await createInspectionResources(inspectionFiles, updatedProject.id);
-        }
+        // Créer le projet
+        const assignproject = await prisma.project.create({
+            data: {
+                name: projectForm.name,
+                description: projectForm.description,
+                startdate: projectForm.startdate ? new Date(projectForm.startdate) : null,
+                enddate: projectForm.enddate ? new Date(projectForm.enddate) : null,
+                infrastructureId: infrastructureID,
+                creatorId: employeeId || companyId,
+                companyId: companyId,
+              
+                employee: {
+                    create: ids.map(employeeId => ({
+                        employee: { connect: { id: employeeId } }
+                    }))
+                }
+            }
+        });
 
-        res.status(200).json({ message: 'Projet créé ou mis à jour avec succès', projectId: updatedProject.id });
+        res.status(200).json({ message: 'Project created successfully', assignproject });
     } catch (error) {
-        console.error("Erreur lors de la création ou de la mise à jour du projet :", error);
-        res.status(500).json({ error: 'Erreur lors de la création ou de la mise à jour du projet' });
+        console.error("Erreur lors de la création du projet :", error);
+        res.status(500).json({ error: "An error occurred while creating the project" });
     }
-}
+};
+
 
 const start_process = async (req, res) => {
     const { companyId } = req.user;
@@ -270,7 +325,7 @@ const start_process = async (req, res) => {
             },
             data: {
 
-                status: true,
+                status: 2,
             }
         });
         return res.status(200).json({ message: 'Le traitement est finie en succes' });
@@ -287,7 +342,107 @@ const start_process = async (req, res) => {
 
 }
 
+const addRessources = async (req, res) => {
+    const { projectId } = req.body;
+    const resources = req.files;
+    console.log({resources});
+    console.log({projectId});
+    const { companyId, employeeId ,role} = req.user;
+    console.log({ companyId, employeeId,role }) ;
+    try {
+        const projectIdInt = parseInt(projectId, 10);
+        // Utilisez await avec createInspectionResources car c'est une fonction asynchrone
+        await createInspectionResources(resources, projectIdInt);
+        // Envoyez une réponse une fois que la création des ressources est terminée
+        res.status(200).json({ message: 'Ressources ajoutées avec succès' });
+    } catch (error) {
+        res.status(500).json({ error: 'Une erreur s\'est produite lors de l\'ajout des ressources' });
+    }
+}
+const checkData = async (req, res) => {
+    console.log('checkData')
+    const { projectId } = req.body;
+    console.log('projectId',{ projectId });
+    const { companyId, employeeId, role } = req.user;
+    console.log('checkData',{ companyId, employeeId, role });
+  
+    try {
+     
+      // Vérifier si le projet existe
+      const project = await prisma.project.findUnique({
+        where: {
+          id: parseInt(projectId) ,
+        },
+      });
+  
+      if (!project) {
+        return res.status(404).json({ error: 'Projet not found' });
+      }
+  
+      // Vérifier s'il existe au moins un média de type 'image/' ou 'video/' associé au projet
+      const hasImageMedia = await prisma.resource.findFirst({
+        where: {
+          projectId: project.id,
+          type: {
+            startsWith: 'image/',
+          },
+        },
+      });
+  
+         // Vérifier s'il existe au moins un média de type 'video/' associé au projet
+    const hasVideoMedia = await prisma.resource.findFirst({
+        where: {
+          projectId: project.id,
+          type: {
+            startsWith: 'video/',
+          },
+        },
+      });
+  
+      if (!hasImageMedia && !hasVideoMedia) {
+        return res.status(404).json({ error: 'Aucun média de type image ou vidéo associé à ce projet' });
+      }
+      // Envoyez une réponse une fois que la vérification est terminée
+      res.status(200).json({ message: 'Le projet et les médias existent' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Une erreur s\'est produite lors de la vérification' });
+    }
+  };
 
-module.exports = { createProject, updateProject, getProjects, deleteProject, start_process,getMultiFormStepData , createNewInfrastructure};
+  const ConfirmResource = async (req, res) => {
+
+   const { projectId } = req.body;
+
+    try {
+        const project = await prisma.project.findUnique({
+            where: {
+                id: parseInt(projectId)
+            }
+        });
+
+        if (!project) {
+            return res.status(404).json({ error: 'Project instance not found' });
+        }
+
+        
+            await prisma.project.update({
+                where: {
+                    id: parseInt(projectId)
+                },
+                data: {
+                    status: 1
+                }
+            });
+    
+
+        res.status(200).json({ message: 'Project instance found and updated successfully' });
+    } catch (error) {
+        console.error('Error processing project request:', error);
+        res.status(500).json({ error: 'An error occurred while processing project request' });
+    }
+
+}
+module.exports = { createProject, updateProject, getProjects, deleteProject, start_process,getMultiFormStepData , createNewInfrastructure,getAllEmployee,addRessources,checkData,ConfirmResource};
 
 

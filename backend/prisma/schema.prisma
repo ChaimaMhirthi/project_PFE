@@ -6,50 +6,61 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
+model SuperAdmin {
+  id        Int      @id @default(autoincrement())
+  // Autres champs de SuperAdmin
+username String  @unique
+password String 
+  // Relation avec les entreprises
+}
 model Company {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   firstname String
   lastname  String
-  phone     String
-  email     String @unique
+  phone     String?
+  email     String  @unique
 
-  company         String
-  country         String
-  city            String
-  accountVerified Boolean? @default(false)
- resetToken            String?  @unique
-  resetTokenExpiresAt DateTime? 
-  password       String
-  otp            String?
-  otpExpiresAt     DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  projects       Project[]
-  comments       Comment[]
-  employee       Employee[]
-  infrastructure Infrastructure[]
+  companyname             String  @unique
+
+  country             String
+  city                String
+  accountVerified     Boolean?         @default(false)
+  resetToken          String?          @unique
+  resetTokenExpiresAt DateTime?
+  password            String
+  otp                 String?
+  otpExpiresAt        DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+    status   Int?                    @default(0)
+    projects            Project[]
+  comments            Comment[]
+  employee            Employee[]
+  infrastructure      Infrastructure[]
+
 }
 
 model Employee {
-  id                     Int                         @id @default(autoincrement())
-  firstname              String
-  lastname               String
-  email                  String                      @unique
-  phone                  String
-  password               String
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @updatedAt
- resetToken            String?
-  resetTokenExpiresAt DateTime?     
-  otp            String?
-  otpExpiresAt      DateTime?          
-  project                EmployeeProjectAssignment[]
-  comments               Comment[]
-  role                   Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
-  accountVerified        Boolean?                    @default(false)
-  companyId              Int
-  company                Company                     @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
+  id                  Int                         @id @default(autoincrement())
+  firstname           String
+  lastname            String
+  email               String                      @unique
+  phone               String?
+  password            String
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  resetToken          String?                 @unique
+  resetTokenExpiresAt DateTime?
+  otp                 String?
+  otpExpiresAt        DateTime?
+  project             EmployeeProjectAssignment[]
+  comments            Comment[]
+  role                Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
+  accountVerified     Boolean?                    @default(false)
+  companyId           Int
+  company             Company                     @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
+status   Int?                    @default(0)
+
 }
 
 model EmployeeProjectAssignment {
@@ -69,7 +80,9 @@ model Project {
   description        String?
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
-  status             Boolean?                    @default(false)
+  startdate          DateTime
+  enddate            DateTime
+  status             Int?                       @default(0)
   companyId          Int // Define a foreign key referencing company
   company            Company                     @relation(fields: [companyId], references: [id])
   creatorId          Int // Nouvelle colonne pour stocker l'ID du créateur
@@ -128,7 +141,6 @@ model Comment {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   damageId    Int?
-  Damage      Damage?   @relation(fields: [damageId], references: [id])
   companyId   Int?
   company     Company?  @relation(fields: [companyId], references: [id])
   employeeId  Int?
@@ -139,7 +151,7 @@ model Damage {
   id           Int     @id @default(autoincrement())
   type         String?
   dangerDegree Int?
-  description  String?
+  comment  String?
   position     String?
 
   videoFrameNumber        Int?
@@ -150,7 +162,6 @@ model Damage {
   damageClassIdModel      Int?
   trackingVideoId         Int?
   detectionTimestampVideo DateTime?
-  comments                Comment[]
   resourceId              Int
   resource                Resource  @relation(fields: [resourceId], references: [id])
 }

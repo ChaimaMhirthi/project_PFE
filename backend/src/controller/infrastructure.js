@@ -127,8 +127,9 @@ const updateExistingInfrastructure = async (req, res) => {
 };
 
 const getAllInfrastructures = async (req, res) => {
-  const { companyId } = req.user;
+  console.log(req.user);
 
+  const { companyId } = req.user;
   try {
     // Récupérer les infrastructures associées aux projets de l'entreprise
     const infrastructures = await prisma.infrastructure.findMany({

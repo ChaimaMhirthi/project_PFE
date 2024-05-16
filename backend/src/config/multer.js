@@ -8,14 +8,15 @@ console.log("sharedRepo ",sharedRepo);
 const multerConfigImage = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
-            cb(null, path.join(__dirname, "../../public/images"));
+            uploadPath = path.join(sharedRepo, "/uploads/inspectionImages/");
+            cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
             cb(null, file.originalname);
         }
     }),
     fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png/;
+        const filetypes = /jpeg|jpg|png|webp/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
         if (mimetype && extname) {
@@ -29,7 +30,7 @@ const multerConfigImage = multer({
 const multerConfigVideo = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
-            cb(null, path.join(__dirname, "../../public/video"));
+            cb(null,  path.join(sharedRepo, "/uploads/inspectionVideos/"));
         },
         filename: (req, file, cb) => {
             cb(null, file.originalname);
@@ -57,14 +58,12 @@ function handleMulterError(err, req, res, next) {
     next();
 }
 
-const multerUploadAllMedia = multer({
+const multerConfig_Video_Fp = multer({
     storage: multer.diskStorage({
         destination: function (req, file, cb) {
             let uploadPath = '';
                 console.log("sharedRepo",sharedRepo)
-                if (file.mimetype.startsWith('image/')) {
-                    uploadPath = path.join(sharedRepo, "/uploads/inspectionImages/");
-                } else if (file.mimetype.startsWith('video/')) {
+                if (file.mimetype.startsWith('video/')) {
                     uploadPath = path.join(sharedRepo, "/uploads/inspectionVideos/");
                 } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
                     uploadPath = path.join(sharedRepo, "/uploads/inspectionFlightpaths/");
@@ -72,16 +71,13 @@ const multerUploadAllMedia = multer({
             cb(null, uploadPath);
         },
         filename: function (req, file, cb) {
-            cb(null, file.originalname);
+            cb(null, file.fieldname);
         }
 
     }),
 
     fileFilter: function (req, file, cb) {
-        if (file.mimetype.startsWith('image/')) {
-            // Accepter les images PNG et JPG
-            cb(null, true);
-        } else if (file.mimetype.startsWith('video/')) {
+     if (file.mimetype.startsWith('video/')) {
             // Accepter les vidéos MP4
             cb(null, true);
         } else if (file.mimetype === 'text/plain' || file.mimetype === 'application/json') {
@@ -108,4 +104,4 @@ const multerUploadInfrastrImage= multer({
     }),
    
 });
-module.exports = { multerConfigImage, multerConfigVideo, multerUploadAllMedia,multerUploadInfrastrImage, handleMulterError };
+module.exports = { multerConfigImage, multerConfig_Video_Fp,multerUploadInfrastrImage, handleMulterError };

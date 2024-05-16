@@ -49,7 +49,7 @@ const sendResetByEmail = async (email, resetToken, entityType) => {
 
         // Envoi de l'e-mail
 
-        const info = await transporter.sendMail(mailOptions);        return info;
+        const info = await transporter.sendMail(mailOptions); return info;
     } catch (error) {
         console.error('Error sending reset email:', error);
         throw new Error('Error sending reset email');
@@ -62,9 +62,11 @@ const resendOTPByEmail = async (req, res, entityType) => {
         if (!user) {
             return res.status(404).json({ error: 'Account not found' });
         }
-        if (user.accountVerified ) {            return res.status(409).json({ error: 'Account is already valid ' });
+        if (user.accountVerified) {
+            return res.status(409).json({ error: 'Account is already valid ' });
         }
-        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now()))  {            return res.status(401).json({ error: 'Please check your email, If the email is not received, please try again later ' });
+        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now())) {
+            return res.status(401).json({ error: 'Please check your email, If the email is not received, please try again later ' });
         }
         const otp = generateOTP();        // Stockage de l'OTP dans la base de données
         await updateUser({
@@ -75,7 +77,7 @@ const resendOTPByEmail = async (req, res, entityType) => {
             }
         }, entityType);
         // Appeler la fonction sendOTPByEmail avec les paramètres requis
-        await sendOTPByEmail(email, otp,entityType);
+        await sendOTPByEmail(email, otp, entityType);
 
         // Envoyer une réponse réussie
         res.status(200).json({ message: 'OTP resent successfully' });
@@ -86,7 +88,7 @@ const resendOTPByEmail = async (req, res, entityType) => {
     }
 }
 
-const sendOTPByEmail = async (email, otp,entityType) => {
+const sendOTPByEmail = async (email, otp, entityType) => {
     try {
         // Configuration du service SMTP
         const transporter = nodemailer.createTransport({
@@ -109,7 +111,7 @@ const sendOTPByEmail = async (email, otp,entityType) => {
         };
 
         // Envoi de l'email
-        const info = await transporter.sendMail(mailOptions);        return info;
+        const info = await transporter.sendMail(mailOptions); return info;
     } catch (error) {
         console.error('Error sending OTP:', error);
         let errorMessage = 'Erreur lors de l\'envoi de l\'email';
@@ -132,10 +134,12 @@ const verifyOTP = async (req, res, entityType) => {
         if (!user) {
             return res.status(404).json({ error: 'Account expired' });
         }        // Vérifier si le" code OTP est correct et non expiré
-        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now())) {            if (!(user.otp === otp)) {
+        if (user.otpExpiresAt && user.otpExpiresAt > new Date(Date.now())) {
+            if (!(user.otp === otp)) {
                 { return res.status(401).json({ error: 'Invalid OTP code  ' }); }
-            }         }
-       
+            }
+        }
+
         else {
             return res.status(401).json({ error: 'Expired OTP code ,You can request a new password reset link  OTP code ' });
         }
@@ -158,13 +162,14 @@ const verifyOTP = async (req, res, entityType) => {
         return res.status(500).json({ error: 'There was an error verifying the email' });
     }
 }
-const forgotPassword = async (req, res, entityType) => {    const { email ,password} = req.body;
+const forgotPassword = async (req, res, entityType) => {
+    const { email, password } = req.body;
     try {
         // Vérifier si l'utilisateur existe
-        const user = await getUserByEmail(email, entityType);        if (!user) {
+        const user = await getUserByEmail(email, entityType); if (!user) {
             return res.status(404).json({ error: 'Account not found' });
         }
-        if (user.resetToken && user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date(Date.now())) {
+        if (user.resetToken && user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now())) {
             // Un token de réinitialisation existe et n'a pas expiré
             return res.status(401).json({ error: 'A password reset link has already been sent. Please check your email' });
         }
@@ -185,12 +190,14 @@ const forgotPassword = async (req, res, entityType) => {    const { email ,passw
         }
         // Envoyer un e-mail avec le lien de réinitialisation contenant le token
         await sendResetByEmail(email, resetToken, entityType);
-        res.status(200).json({ message: 'Password reset email sent successfully' });
+        res.status(200).json({ message: 'Check your email for instructions on resetting your password' });
     } catch (error) {
         res.status(500).json({ error: 'Error sending reset email' });
     }
 }
-const resetPassword = async (req, res, entityType) => {    const { token, newPassword } = req.body;    try {
+const resetPassword = async (req, res, entityType) => {
+    const { token, newPassword } = req.body;
+    try {
         if (!token) {
             return res.status(400).json({ error: 'Missing Token' });
         }
@@ -200,9 +207,9 @@ const resetPassword = async (req, res, entityType) => {    const { token, newPas
         });
         if (!user) {
             return res.status(404).json({ error: 'Authentication failed. Please check your email and password and try again' });
-        }        if ((user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now()))) {
+        } if ((user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now()))) {
             if (user.resetToken !== token) {
-                return res.status(401).json({ error: 'ivalid reset token' });
+                return res.status(401).json({ error: 'invalid reset token' });
 
             }
 
@@ -212,10 +219,14 @@ const resetPassword = async (req, res, entityType) => {    const { token, newPas
             return res.status(401).json({ error: 'expired reset token You can request a new password reset link ' });
         }
         // Mettre à jour le mot de passe de l'utilisateur
-        const hashedPassword = await bcrypt.hash(newPassword, 10);        const passwordsMatch = await bcrypt.compare(user.password, hashedPassword);
+        const passwordsMatch = await bcrypt.compare(newPassword, user.password);
+
         if (passwordsMatch) {
+            console.log("passwd  match")
+       
             return res.status(400).json({ error: 'Please enter a new password that you havent used before' });
-           }
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         await prisma[entityType].update({
             where: { resetToken: token },
@@ -230,7 +241,7 @@ const resetPassword = async (req, res, entityType) => {    const { token, newPas
             }
         });
         res.status(200).json({ message: 'Password reset successfully' });
-    } 
+    }
     catch (error) {
         console.error('Error resetting password:', error);
         res.status(500).json({ error: 'Error resetting password' });
@@ -249,7 +260,7 @@ const registerUser = async (req, res, entityType) => {
         // Création d'un nouveau hash pour le mot de passe
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Création d'une nouvelle entreprise avec Prisma
+        // Création d'un nouveau user avec Prisma
         const newUser = await createUser({
             ...rest,
             password: hashedPassword
@@ -268,7 +279,7 @@ const registerUser = async (req, res, entityType) => {
         }, entityType);
 
         // Envoi de l'OTP par email à l'utilisateur
-        await sendOTPByEmail(rest.email, otp,entityType);
+        await sendOTPByEmail(rest.email, otp, entityType);
 
         // Renvoi d'une réponse avec le nouvel objet créé
         res.status(200).json({ message: 'succes register and sending otp ', newUser });
@@ -308,18 +319,38 @@ const login = asyncHandler(async (req, res, entityType) => {
         }
 
         // Génération du jeton d'authentification JWT
-        const accessToken = jwt.sign(
-            {
-                user: {
-                    userId: user.id,
-                }
-            },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "24h" }
-        );
+        let accessToken
+        if (entityType === 'company') {
+            accessToken = jwt.sign(
+                {
+
+                    user: {
+                        user: "company",
+                        companyId: user.id,
+                    }
+                },
+                process.env.ACCESS_TOKEN_SECRET,
+                { expiresIn: "24h" }
+            );
+        }
+        else if (entityType === 'employee') {
+            accessToken = jwt.sign(
+                {
+                    user: {
+                        user: "employee",
+                        employeeId: user.id,
+                        companyId: user.companyId,
+                        role: user.role,
+                    }
+                },
+                process.env.ACCESS_TOKEN_SECRET,
+                { expiresIn: "24h" }
+            );
+        }
+
 
         // Envoi du jeton d'authentification
-        return res.status(200).json({ accessToken });
+        return res.status(200).json({ accessToken ,user});
     } catch (error) {
         // Gestion des erreurs
         console.error('Error logging in:', error);
@@ -343,6 +374,7 @@ const getUserByEmail = async (email, entityType) => {
 
 const createUser = async (userData, entityType) => {
     try {
+        console.log("creating user exec",entityType , userData);
         const newUser = await prisma[entityType].create({
             data: userData
         });
@@ -378,5 +410,23 @@ const getEmployeeByEmail = async (email) => {
         throw error;
     }
 }
-
-module.exports = { login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail };
+const getCompanyName = async (req, res) => {
+  
+    try {
+      // Récupérer les infrastructures associées aux projets de l'entreprise
+      const AllCompany = await prisma.company.findMany({
+        select: {
+            id: true,
+            companyname: true
+          }
+      });
+  
+  
+      res.status(200).json({ message: 'recupereation avec succes des companies ', AllCompany });
+  
+    } catch (error) {
+      console.error('Erreur lors de la récupération des companies :', error);
+      res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+  };
+module.exports = { login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail,getCompanyName };
