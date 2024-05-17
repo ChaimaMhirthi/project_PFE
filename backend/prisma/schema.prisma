@@ -6,13 +6,15 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
 model SuperAdmin {
-  id        Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   // Autres champs de SuperAdmin
-username String  @unique
-password String 
+  username String @unique
+  password String
   // Relation avec les entreprises
 }
+
 model Company {
   id        Int     @id @default(autoincrement())
   firstname String
@@ -20,24 +22,23 @@ model Company {
   phone     String?
   email     String  @unique
 
-  companyname             String  @unique
+  companyname  String @unique
+  profileImage String?
 
-  country             String
-  city                String
+  address             String
   accountVerified     Boolean?         @default(false)
-  resetToken          String?          @unique
-  resetTokenExpiresAt DateTime?
+  Token          String?          @unique
+  TokenExpiresAt DateTime?
   password            String
   otp                 String?
   otpExpiresAt        DateTime?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
-    status   Int?                    @default(0)
-    projects            Project[]
+  status              Int?             @default(0)
+  projects            Project[]
   comments            Comment[]
   employee            Employee[]
   infrastructure      Infrastructure[]
-
 }
 
 model Employee {
@@ -45,12 +46,14 @@ model Employee {
   firstname           String
   lastname            String
   email               String                      @unique
+  address             String
+  profileImage        String?
   phone               String?
   password            String
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
-  resetToken          String?                 @unique
-  resetTokenExpiresAt DateTime?
+  Token          String?                     @unique
+  TokenExpiresAt DateTime?
   otp                 String?
   otpExpiresAt        DateTime?
   project             EmployeeProjectAssignment[]
@@ -59,8 +62,7 @@ model Employee {
   accountVerified     Boolean?                    @default(false)
   companyId           Int
   company             Company                     @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
-status   Int?                    @default(0)
-
+  status              Int?                        @default(0)
 }
 
 model EmployeeProjectAssignment {
@@ -82,7 +84,7 @@ model Project {
   updatedAt          DateTime                    @updatedAt
   startdate          DateTime
   enddate            DateTime
-  status             Int?                       @default(0)
+  status             Int?                        @default(0)
   companyId          Int // Define a foreign key referencing company
   company            Company                     @relation(fields: [companyId], references: [id])
   creatorId          Int // Nouvelle colonne pour stocker l'ID du créateur
@@ -151,7 +153,7 @@ model Damage {
   id           Int     @id @default(autoincrement())
   type         String?
   dangerDegree Int?
-  comment  String?
+  comment      String?
   position     String?
 
   videoFrameNumber        Int?

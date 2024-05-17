@@ -104,4 +104,17 @@ const multerUploadInfrastrImage= multer({
     }),
    
 });
-module.exports = { multerConfigImage, multerConfig_Video_Fp,multerUploadInfrastrImage, handleMulterError };
+const multerUploadProfileImage= multer({
+   
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            let uploadPath =path.join(sharedRepo, "/uploads/profileImages/");
+            cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+            cb(null, file.originalname);
+        }
+    }),
+   
+});
+module.exports = { multerConfigImage, multerConfig_Video_Fp,multerUploadInfrastrImage ,multerUploadProfileImage, handleMulterError };

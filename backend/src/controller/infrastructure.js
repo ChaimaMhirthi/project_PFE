@@ -31,6 +31,7 @@ const deleteInfrastructure = async (req, res) => {
 };
 const createNewInfrastructure = async (req, res) => {
   const InfrastructureForm = req.body;
+  console.log("InfrastructureForm",InfrastructureForm);
   const infrastructureImage = req.files;
   const { companyId } = req.user;
   console.log("createNewInfrastructure ", InfrastructureForm);

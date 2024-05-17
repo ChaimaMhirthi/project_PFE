@@ -12,7 +12,21 @@ dotenv.config();
 
 // Fonction pour générer un OTP aléatoire
 
-
+const generateSecurePassword = (length) => {
+    // Définir les caractères autorisés pour le mot de passe
+    const allowedCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
+    let password = '';
+    // Générer chaque caractère du mot de passe
+    for (let i = 0; i < length; i++) {
+        // Choisir un caractère aléatoire parmi les caractères autorisés
+        const randomIndex = crypto.randomInt(0, allowedCharacters.length);
+        const randomCharacter = allowedCharacters[randomIndex];
+        // Ajouter le caractère aléatoire au mot de passe
+        password += randomCharacter;
+    }
+    // Retourner le mot de passe sécurisé
+    return password;
+};
 const generateOTP = () => {
     const randomNum = crypto.randomInt(0, 999999);
 
@@ -21,10 +35,10 @@ const generateOTP = () => {
 
     return randomDigits;
 };
-const generateResetToken = () => {
+const generateToken = async () => {
     return crypto.randomBytes(20).toString('hex');
 };
-const sendResetByEmail = async (email, resetToken, entityType) => {
+const sendPasswordByEmail = async (email, Token, Password, entityType) => {
     try {
         // Configuration du service SMTP
         const transporter = nodemailer.createTransport({
@@ -36,7 +50,37 @@ const sendResetByEmail = async (email, resetToken, entityType) => {
         });
 
         // Lien de réinitialisation du mot de passe avec le token
-        const resetLink = `${process.env.RESET_PASSWORD_LINK}?token=${encodeURIComponent(resetToken)}&user=${encodeURIComponent(entityType)}`;
+        const loginLink = `${process.env.LOGIN_LINK}?token=${encodeURIComponent(Token)}&user=${encodeURIComponent(entityType)}`;
+
+        // Options de l'e-mail
+        const mailOptions = {
+            from: 'hammaabbes5@gmail.com',
+            to: email,
+            subject: 'Bienvenue dans notre entreprise',
+            text: `Cher employé,\n\nBienvenue dans notre entreprise !\n\nVotre compte a été créé avec succès.\n\nVous pouvez vous connecter en cliquant sur ce lien : ${loginLink}\n\nCordialement,\nVotre équipe de support`,
+            html: `<p>Cher employé,</p><p>Bienvenue dans notre entreprise !</p><p>Votre compte a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Vous pouvez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Cordialement,<br>Votre équipe de support</p>`
+        };
+        // Envoi de l'e-mail
+
+        const info = await transporter.sendMail(mailOptions); return info;
+    } catch (error) {
+        console.error('Error....:', error);
+        throw new Error('Error ....');
+    }
+};
+const sendResetByEmail = async (email, Token, entityType) => {
+    try {
+        // Configuration du service SMTP
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'hammaabbes5@gmail.com',
+                pass: 'hpwj epfo zdkn zwdl'
+            }
+        });
+
+        // Lien de réinitialisation du mot de passe avec le token
+        const resetLink = `${process.env.RESET_PASSWORD_LINK}?token=${encodeURIComponent(Token)}&user=${encodeURIComponent(entityType)}`;
 
         // Options de l'e-mail
         const mailOptions = {
@@ -169,27 +213,27 @@ const forgotPassword = async (req, res, entityType) => {
         const user = await getUserByEmail(email, entityType); if (!user) {
             return res.status(404).json({ error: 'Account not found' });
         }
-        if (user.resetToken && user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now())) {
+        if (user.Token && user.TokenExpiresAt && user.TokenExpiresAt > new Date(Date.now())) {
             // Un token de réinitialisation existe et n'a pas expiré
             return res.status(401).json({ error: 'A password reset link has already been sent. Please check your email' });
         }
 
         // Générer un token de réinitialisation de mot de passe
-        const resetToken = generateResetToken();
+        const Token = await generateToken();
         // Stocker le token dans la base de données avec l'ID de l'utilisateur et une date d'expiration
-        if (resetToken) {
+        if (Token) {
             await updateUser({
                 where: {
                     email: email
                 },
                 data: {
-                    resetToken: resetToken,
-                    resetTokenExpiresAt: new Date(Date.now() + 90000000),//15min :date d'expiration
+                    Token: Token,
+                    TokenExpiresAt: new Date(Date.now() + 90000000),//15min :date d'expiration
                 }
             }, entityType);
         }
         // Envoyer un e-mail avec le lien de réinitialisation contenant le token
-        await sendResetByEmail(email, resetToken, entityType);
+        await sendResetByEmail(email, Token, entityType);
         res.status(200).json({ message: 'Check your email for instructions on resetting your password' });
     } catch (error) {
         res.status(500).json({ error: 'Error sending reset email' });
@@ -203,12 +247,12 @@ const resetPassword = async (req, res, entityType) => {
         }
         // Vérifier si le token de réinitialisation est valide et non expiré
         const user = await prisma[entityType].findUnique({
-            where: { resetToken: token }
+            where: { Token: token }
         });
         if (!user) {
             return res.status(404).json({ error: 'Authentication failed. Please check your email and password and try again' });
-        } if ((user.resetTokenExpiresAt && user.resetTokenExpiresAt > new Date(Date.now()))) {
-            if (user.resetToken !== token) {
+        } if ((user.TokenExpiresAt && user.TokenExpiresAt > new Date(Date.now()))) {
+            if (user.Token !== token) {
                 return res.status(401).json({ error: 'invalid reset token' });
 
             }
@@ -223,17 +267,17 @@ const resetPassword = async (req, res, entityType) => {
 
         if (passwordsMatch) {
             console.log("passwd  match")
-       
+
             return res.status(400).json({ error: 'Please enter a new password that you havent used before' });
         }
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         await prisma[entityType].update({
-            where: { resetToken: token },
+            where: { Token: token },
             data: {
                 password: hashedPassword,
-                resetToken: null,
-                resetTokenExpiresAt: null,
+                Token: null,
+                TokenExpiresAt: null,
                 accountVerified: true,
                 otp: null,
                 otpExpiresAt: null
@@ -247,6 +291,8 @@ const resetPassword = async (req, res, entityType) => {
         res.status(500).json({ error: 'Error resetting password' });
     }
 };
+
+
 
 const registerUser = async (req, res, entityType) => {
     const { password, ...rest } = req.body;
@@ -291,7 +337,11 @@ const registerUser = async (req, res, entityType) => {
 };
 
 const login = asyncHandler(async (req, res, entityType) => {
-    const { email, password } = req.body;
+    const { email, password, token } = req.body;
+console.log({email});
+console.log({password});
+console.log({token});
+console.log({entityType});
 
     // Validation des données d'entrée
     if (!email || !password) {
@@ -306,17 +356,50 @@ const login = asyncHandler(async (req, res, entityType) => {
             return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
         }
 
+        if (token && !user.accountVerified) {
+            if (!user.Token || !user.TokenExpiresAt || user.TokenExpiresAt < new Date(Date.now())) {
+                const newToken = await generateToken();
+                const newSecurePassword = generateSecurePassword(12);
 
-        // Vérification du mot de passe
-        const match = await bcrypt.compare(password, user.password);
+                await updateUser({
+                    where: { id: user.id },
+                    data: {
+                        Token: newToken,
+                        TokenExpiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)),//15min :date d'expiration
+                    }
+                }, entityType);
+                // Appeler la fonction sendOTPByEmail avec les paramètres requis
+                await sendPasswordByEmail(email, newToken, newSecurePassword, entityType);
+                return res.status(400).json({ error: 'expired reset token we will request you a new url for sign in ,please check your email' });
 
-        if (!match) {
-            return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
+            }
+            const match = await bcrypt.compare(password, user.password);
+
+            if (!match) {
+                return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
+            }
+
+            await updateUser({
+                where: { id: user.id },
+                data: {
+                    accountVerified:true,
+                    Token: null,
+                    TokenExpiresAt: null
+                }
+            }, entityType);
         }
-        // Vérification si le compte de l'utilisateur est vérifié
-        if (!user.accountVerified) {
-            return res.status(401).json({ error: 'Account not verified' });
+        else {
+            const match = await bcrypt.compare(password, user.password);
+
+            if (!match) {
+                return res.status(400).json({ error: 'Authentication failed. Please check your email and password and try again' });
+            }
+            // Vérification si le compte de l'utilisateur est vérifié
+            if (!user.accountVerified) {
+                return res.status(401).json({ error: 'Account not verified' });
+            }
         }
+
 
         // Génération du jeton d'authentification JWT
         let accessToken
@@ -350,7 +433,7 @@ const login = asyncHandler(async (req, res, entityType) => {
 
 
         // Envoi du jeton d'authentification
-        return res.status(200).json({ accessToken ,user});
+        return res.status(200).json({ accessToken, user });
     } catch (error) {
         // Gestion des erreurs
         console.error('Error logging in:', error);
@@ -374,7 +457,7 @@ const getUserByEmail = async (email, entityType) => {
 
 const createUser = async (userData, entityType) => {
     try {
-        console.log("creating user exec",entityType , userData);
+        console.log("creating user exec", entityType, userData);
         const newUser = await prisma[entityType].create({
             data: userData
         });
@@ -411,22 +494,22 @@ const getEmployeeByEmail = async (email) => {
     }
 }
 const getCompanyName = async (req, res) => {
-  
+
     try {
-      // Récupérer les infrastructures associées aux projets de l'entreprise
-      const AllCompany = await prisma.company.findMany({
-        select: {
-            id: true,
-            companyname: true
-          }
-      });
-  
-  
-      res.status(200).json({ message: 'recupereation avec succes des companies ', AllCompany });
-  
+        // Récupérer les infrastructures associées aux projets de l'entreprise
+        const AllCompany = await prisma.company.findMany({
+            select: {
+                id: true,
+                companyname: true
+            }
+        });
+
+
+        res.status(200).json({ message: 'recupereation avec succes des companies ', AllCompany });
+
     } catch (error) {
-      console.error('Erreur lors de la récupération des companies :', error);
-      res.status(500).json({ error: 'Erreur interne du serveur' });
+        console.error('Erreur lors de la récupération des companies :', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
     }
-  };
-module.exports = { login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail,getCompanyName };
+};
+module.exports = { generateToken, generateSecurePassword, sendPasswordByEmail, login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail, getCompanyName, getUserByEmail, createUser };

@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE `employee` MODIFY `resetToken` VARCHAR(191) NULL,
-    MODIFY `resetTokenExpiresAt` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3);
