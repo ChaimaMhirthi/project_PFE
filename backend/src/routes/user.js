@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const {  getAllEmployee ,updateEmployee,deleteEmployee ,getAllCompany ,deleteCompany,updateCompany,CreateUser} = require('../controller/users');
+const {  getAllEmployee ,updateEmployee,deleteEmployee ,getAllManager ,deleteManager,updateManager,CreateUser} = require('../controller/users');
 const {  isSuperAdmin } = require('../middleware/authenticationToken');
 const { multerUploadProfileImage } = require('../config/multer');
 
@@ -10,11 +10,11 @@ router.post('/update-employee',updateEmployee);
 router.delete('/delete-employee/:employeeId',deleteEmployee);
 router.post('/create-employee', multerUploadProfileImage.any(),(req, res) => CreateUser(req, res, 'employee'));
 
-// company management
-router.post('/create-company', multerUploadProfileImage.any(),(req, res) => CreateUser(req, res, 'company'));
+// manager management
+router.post('/create-manager', multerUploadProfileImage.any(),(req, res) => CreateUser(req, res, 'manager'));
 
-router.get('/get-allcompany',getAllCompany);
-router.post('/update-company',updateCompany);
-router.delete('/delete-company/:companyId',deleteCompany);
+router.get('/get-allmanager',getAllManager);
+router.post('/update-manager',updateManager);
+router.delete('/delete-manager/:managerId',deleteManager);
 
 module.exports = router;

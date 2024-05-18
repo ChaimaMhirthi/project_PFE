@@ -10,7 +10,6 @@ const authenticateToken = asyncHandler(async (req, res, next) => {
       const { ACCESS_TOKEN_SECRET } = process.env;
       const decoded = await jwt.verify(authHeader[1], ACCESS_TOKEN_SECRET);
       req.user = decoded.user;
-      console.log(req.user);
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
@@ -30,7 +29,7 @@ const authenticateToken = asyncHandler(async (req, res, next) => {
 
 const canCreateProject = async (req, res, next) => {
     const { user } = req;
-    if (user.user === 'company' || (user.user === 'employee' && user.role === 3)) {
+    if (user.user === 'manager' || (user.user === 'employee' && user.role === 3)) {
         // L'utilisateur est autorisé, passe au middleware suivant
         next();
     } else {
@@ -51,7 +50,7 @@ const canAddRessources = async (req, res, next) => {
 };
 const canStartProcess = async (req, res, next) => {
   const { user } = req;
-  if (user.user === 'company' || (user.user === 'employee' && user.role === 3)) {
+  if (user.user === 'manager' || (user.user === 'employee' && user.role === 3)) {
       // L'utilisateur est autorisé, passe au middleware suivant
       next();
   } else {
@@ -81,7 +80,7 @@ const canEvaluate= async (req, res, next) => {
 };
 const isSuperAdmin= async (req, res, next) => {
   const { user } = req;
-  if (user.user === 'superadmin' ) {
+  if (user.user === 'superAdmin' ) {
       // L'utilisateur est autorisé, passe au middleware suivant
       next();
   } else {

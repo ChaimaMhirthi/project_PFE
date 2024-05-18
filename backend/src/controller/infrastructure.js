@@ -33,7 +33,7 @@ const createNewInfrastructure = async (req, res) => {
   const InfrastructureForm = req.body;
   console.log("InfrastructureForm",InfrastructureForm);
   const infrastructureImage = req.files;
-  const { companyId } = req.user;
+  const { managerId } = req.user;
   console.log("createNewInfrastructure ", InfrastructureForm);
   try {
     // Valider les données du formulaire
@@ -57,7 +57,7 @@ const createNewInfrastructure = async (req, res) => {
         span: InfrastructureForm.span ? parseInt(InfrastructureForm.span, 10) : null,
         length: InfrastructureForm.length ? parseInt(InfrastructureForm.length, 10) : null,
         image: infrastructureImage[0]?.originalname,
-        companyId: companyId
+        managerId: managerId
       }
     });
 
@@ -108,7 +108,7 @@ const updateExistingInfrastructure = async (req, res) => {
         id: parseInt(infrastrId),
       },
       data: {
-        companyId:  parseInt(InfrastructureForm.companyId),
+        managerId:  parseInt(InfrastructureForm.managerId),
         constructionDate: new Date(InfrastructureForm.constructionDate),
         span: parseInt(InfrastructureForm.span),
         length: parseInt(InfrastructureForm.length),
@@ -128,27 +128,37 @@ const updateExistingInfrastructure = async (req, res) => {
 };
 
 const getAllInfrastructures = async (req, res) => {
-  console.log(req.user);
 
-  const { companyId } = req.user;
+
+  const { managerId, superAdminId } = req.user;
   try {
-    // Récupérer les infrastructures associées aux projets de l'entreprise
-    const infrastructures = await prisma.infrastructure.findMany({
-      where: {
-        company: {
-          id: companyId,
+    let infrastructures;
+    if (superAdminId!==undefined && superAdminId) {
+      // Si superAdminId est défini, récupérer toutes les infrastructures
+      infrastructures = await prisma.infrastructure.findMany();
+    } else if (managerId) {
+      // Si managerId est défini, récupérer les infrastructures associées à cet ID
+      infrastructures = await prisma.infrastructure.findMany({
+        where: {
+          managerId: managerId,
         },
-      },
-    });
+      });
+    } 
 
+    if (!infrastructures || infrastructures?.length === 0) {
+      // Si aucune infrastructure n'a été récupérée, retourner une réponse avec un code de statut 404 (Not Found)
+      return res.status(404).json({ error: 'Aucune infrastructure trouvée' });
+    }
 
-    res.status(200).json({ message: 'recupereation avec succes des infrastructures ', infrastructures: infrastructures });
+    res.status(200).json({ message: 'Récupération réussie des infrastructures', infrastructures: infrastructures });
 
   } catch (error) {
     console.error('Erreur lors de la récupération des infrastructures :', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 };
+
+
 const getInfrastructure = async (req, res) => {
   const { id } = req.params;
 

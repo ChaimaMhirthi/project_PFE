@@ -403,13 +403,17 @@ console.log({entityType});
 
         // Génération du jeton d'authentification JWT
         let accessToken
-        if (entityType === 'company') {
+        if (entityType === 'manager') {
             accessToken = jwt.sign(
                 {
 
                     user: {
-                        user: "company",
-                        companyId: user.id,
+                        user: "manager",
+                        managerId: user.id,
+                        companyname:user.companyname,
+                        firstname:user.firstname,
+                        lastname:user.lastname,
+                        profileImage:user.profileImage
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
@@ -422,8 +426,11 @@ console.log({entityType});
                     user: {
                         user: "employee",
                         employeeId: user.id,
-                        companyId: user.companyId,
+                        managerId: user.managerId,
+                        firstname:user.firstname,
+                        lastname:user.lastname,
                         role: user.role,
+                        profileImage:user.profileImage
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
@@ -440,6 +447,42 @@ console.log({entityType});
         return res.status(500).json({ error: 'Error logging in.' });
     }
 });
+
+const adminLogin = asyncHandler(async(req, res) => {
+    const { username, password } = req.body;
+const hashedPassword = await bcrypt.hash(password, 10);
+
+
+    try {
+      // Recherche du superadmin dans la base de données par son nom d'utilisateur
+      const superadmin = await prisma.superAdmin.findUnique({
+        where: {
+          username: username,
+        },
+      });
+  
+      // Vérification si le superadmin existe et si le mot de passe correspond
+      if (!superadmin || !bcrypt.compareSync(password, superadmin.password)) {
+        // Retourner une réponse d'erreur si l'authentification échoue
+        return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
+      }
+      accessToken = jwt.sign(
+        {
+            user: {
+                superAdminId:superadmin.id,
+                user: "superAdmin",            
+            }
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "24h" }
+    );
+      // Authentification réussie, retourner les informations du superadmin
+      return res.status(200).json({ accessToken });
+    } catch (error) {
+      // Gérer les erreurs de manière appropriée
+      console.error('Erreur lors de l\'authentification du superadmin:', error);
+      return res.status(500).json({ message: 'Erreur lors de l\'authentification du superadmin.' });
+    }});
 
 const getUserByEmail = async (email, entityType) => {
     try {
@@ -493,11 +536,11 @@ const getEmployeeByEmail = async (email) => {
         throw error;
     }
 }
-const getCompanyName = async (req, res) => {
+const getManagerName = async (req, res) => {
 
     try {
         // Récupérer les infrastructures associées aux projets de l'entreprise
-        const AllCompany = await prisma.company.findMany({
+        const AllManager = await prisma.manager.findMany({
             select: {
                 id: true,
                 companyname: true
@@ -505,11 +548,11 @@ const getCompanyName = async (req, res) => {
         });
 
 
-        res.status(200).json({ message: 'recupereation avec succes des companies ', AllCompany });
+        res.status(200).json({ message: 'recupereation avec succes des companies ', AllManager });
 
     } catch (error) {
         console.error('Erreur lors de la récupération des companies :', error);
         res.status(500).json({ error: 'Erreur interne du serveur' });
     }
 };
-module.exports = { generateToken, generateSecurePassword, sendPasswordByEmail, login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail, getCompanyName, getUserByEmail, createUser };
+module.exports = {adminLogin, generateToken, generateSecurePassword, sendPasswordByEmail, login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail, getManagerName, getUserByEmail, createUser };

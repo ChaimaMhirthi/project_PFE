@@ -6,7 +6,7 @@ const getInspectionResource = async (req, res) => {
 
     const Resource = await prisma.resource.findMany({
         where: {
-            id: projectId, // Utilisez `companyId` comme critère de recherche
+            id: projectId, // Utilisez `managerId` comme critère de recherche
           },
           select: {
             infrastructure: {

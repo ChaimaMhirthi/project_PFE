@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 const createComment = async (req, res) => {  
   try {
-    const { description, DamageImageId, AccountcompanyId, GuestId } = req.body;
+    const { description, DamageImageId, AccountmanagerId, GuestId } = req.body;
 
     // Check if the DamageImage exists
     const damageImage = await DamageImage.findById(DamageImageId);
@@ -12,11 +12,11 @@ const createComment = async (req, res) => {
       return res.status(404).json({ message: 'DamageImage not found' });
     }
 
-    // Check if the Accountcompany exists, if provided
-    if (AccountcompanyId) {
-      const accountcompany = await Accountcompany.findById(AccountcompanyId);
-      if (!accountcompany) {
-        return res.status(404).json({ message: 'Accountcompany not found' });
+    // Check if the Accountmanager exists, if provided
+    if (AccountmanagerId) {
+      const accountmanager = await Accountmanager.findById(AccountmanagerId);
+      if (!accountmanager) {
+        return res.status(404).json({ message: 'Accountmanager not found' });
       }
     }
 
@@ -32,7 +32,7 @@ const createComment = async (req, res) => {
     const comment = new Comment({
       description,
       DamageImageId,
-      AccountcompanyId,
+      AccountmanagerId,
       GuestId
     });
 

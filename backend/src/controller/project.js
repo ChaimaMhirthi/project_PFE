@@ -5,13 +5,13 @@ const { updateExistingInfrastructure ,createNewInfrastructure} = require('../con
 
 // const { createResourceForProject } = require('./inspectionResource')
 const getAllEmployee = async (req, res) => {
-    const { companyId  } = req.user;
+    const { managerId  } = req.user;
 
     try {
       // Récupérer les infrastructures associées aux projets de l'entreprise
       const AllEmployee = await prisma.employee.findMany({
         where: {
-          companyId: companyId,
+          managerId: managerId,
         
         },
         select: {
@@ -49,20 +49,34 @@ const getMultiFormStepData = async (req, res) => {
 }
 
 const getProjects = async (req, res) => {
-    const { companyId } = req.user;
+    const { managerId } = req.user;
     try {
-        const projects = await prisma.project.findMany({
-            where: {
-                companyId: companyId
-            },
-            include: { infrastructure: true, company: true },
+        let projects;
+        if (managerId ) {
+            // Si managerId est défini, récupérer les projets associés à cet ID
+            projects = await prisma.project.findMany({
+                where: {
+                    managerId: managerId
+                },
+                include: { infrastructure: true, manager: true },
+            });
+        } else {
+            // Si managerId n'est pas défini, récupérer tous les projets
+            projects = await prisma.project.findMany({
+                include: { infrastructure: true, manager: true },
+            });
+        }
 
-        });
+        if (!projects || projects.length === 0) {
+            // Si aucun projet n'a été récupéré, retourner une réponse avec un code de statut 404 (Not Found)
+            return res.status(404).json({ error: 'Aucun projet trouvé' });
+        }
+
         res.status(200).json(projects);
     }
     catch (error) {
         console.log(error);
-        res.status(500).json({ error: 'Error getting projects' });
+        res.status(500).json({ error: 'Erreur lors de la récupération des projets' });
     }
 }
 
@@ -129,7 +143,7 @@ const deleteProject = async (req, res) => {
 
 // Fonction pour créer un nouveau projet d'inspection
 
-async function createNewProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId) {
+async function createNewProject(formProject, formInfrastructure, infrastructureImage, managerId, guestId) {
     try {
         let infrId;
 
@@ -146,8 +160,8 @@ async function createNewProject(formProject, formInfrastructure, infrastructureI
             data: {
                 name: formProject.name,
                 description: formProject.description,
-                companyId: companyId,
-                creatorId: guestId | companyId,
+                managerId: managerId,
+                creatorId: guestId | managerId,
                 infrastructureId: infrId,
             },
         });
@@ -157,7 +171,7 @@ async function createNewProject(formProject, formInfrastructure, infrastructureI
 }
 
 // Fonction pour mettre à jour un projet d'inspection existant
-async function updateExistingProject(formProject, formInfrastructure, infrastructureImage, companyId, guestId) {
+async function updateExistingProject(formProject, formInfrastructure, infrastructureImage, managerId, guestId) {
     try {
         const project = await prisma.project.findUnique({
             where: { id: formProject.id },
@@ -179,8 +193,8 @@ async function updateExistingProject(formProject, formInfrastructure, infrastruc
             data: {
                 name: formProject.name,
                 description: formProject.description,
-                companyId: companyId,
-                creatorId: guestId | companyId,
+                managerId: managerId,
+                creatorId: guestId | managerId,
                 infrastructureId: infrId,
             },
         });
@@ -228,8 +242,8 @@ const createProject = async (req, res) => {
     console.log({ ids });
         console.log({ employeeAssignment });
 
-    const { companyId, employeeId ,role} = req.user;
-    console.log({ companyId, employeeId,role }) ;
+    const { managerId, employeeId ,role} = req.user;
+    console.log({ managerId, employeeId,role }) ;
 
     try {
         // Vérifier si le nom de projet est unique
@@ -256,8 +270,8 @@ const createProject = async (req, res) => {
                 startdate: projectForm.startdate ? new Date(projectForm.startdate) : null,
                 enddate: projectForm.enddate ? new Date(projectForm.enddate) : null,
                 infrastructureId: infrastructureID,
-                creatorId: employeeId || companyId,
-                companyId: companyId,
+                creatorId: employeeId || managerId,
+                managerId: managerId,
               
                 employee: {
                     create: ids.map(employeeId => ({
@@ -276,7 +290,7 @@ const createProject = async (req, res) => {
 
 
 const start_process = async (req, res) => {
-    const { companyId } = req.user;
+    const { managerId } = req.user;
     const { projectId } = req.body;
     try {
         const project = await prisma.project.findUnique({
@@ -347,8 +361,8 @@ const addRessources = async (req, res) => {
     const resources = req.files;
     console.log({resources});
     console.log({projectId});
-    const { companyId, employeeId ,role} = req.user;
-    console.log({ companyId, employeeId,role }) ;
+    const { managerId, employeeId ,role} = req.user;
+    console.log({ managerId, employeeId,role }) ;
     try {
         const projectIdInt = parseInt(projectId, 10);
         // Utilisez await avec createInspectionResources car c'est une fonction asynchrone
@@ -363,8 +377,8 @@ const checkData = async (req, res) => {
     console.log('checkData')
     const { projectId } = req.body;
     console.log('projectId',{ projectId });
-    const { companyId, employeeId, role } = req.user;
-    console.log('checkData',{ companyId, employeeId, role });
+    const { managerId, employeeId, role } = req.user;
+    console.log('checkData',{ managerId, employeeId, role });
   
     try {
      

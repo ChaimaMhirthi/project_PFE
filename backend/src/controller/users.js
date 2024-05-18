@@ -5,11 +5,11 @@ const bcrypt = require('bcrypt');
 
 
 const getAllEmployee = async (req, res) => {
-  const { companyId, superAdminId } = req.user;
+  const { managerId, superAdminId } = req.user;
 
   try {
     const AllEmployee = await prisma.employee.findMany({
-      where: companyId ? { companyId } : superAdminId ? {} : { id: null },
+      where: managerId ? { managerId } : superAdminId ? {} : { id: null },
       select: {
         id: true,
         firstname: true,
@@ -20,7 +20,7 @@ const getAllEmployee = async (req, res) => {
         accountVerified: true,
         status: true,
         profileImage:true,
-        company: {    // Sélectionnez les projets associés à chaque employé
+        manager: {    // Sélectionnez les projets associés à chaque employé
           select: {
             companyname: true
           }
@@ -32,7 +32,6 @@ const getAllEmployee = async (req, res) => {
         }
       }
     });
-    console.log(AllEmployee);
     res.status(200).json({ message: 'Récupération réussie des employés', AllEmployee });
 
   } catch (error) {
@@ -112,10 +111,10 @@ const deleteEmployee = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while deleting employee' });
   }
 };
-const getAllCompany = async (req, res) => {
+const getAllManager = async (req, res) => {
 
   try {
-    const AllCompany = await prisma.company.findMany({
+    const AllManager = await prisma.manager.findMany({
       select: {
         id: true,
         firstname: true,
@@ -138,8 +137,7 @@ const getAllCompany = async (req, res) => {
       }
 
     });
-    console.log("AllCompany", AllCompany);
-    res.status(200).json({ message: 'Récupération réussie des employés', AllCompany });
+    res.status(200).json({ message: 'Récupération réussie des employés', AllManager });
 
   } catch (error) {
     console.error('Erreur lors de la récupération des employés :', error);
@@ -147,68 +145,68 @@ const getAllCompany = async (req, res) => {
   }
 };
 
-const updateCompany = async (req, res) => {
+const updateManager = async (req, res) => {
   const { editedRow } = req.body;
   try {
     // Iterate through all damages to update
 
-    const { id: companyId, status } = editedRow;
+    const { id: managerId, status } = editedRow;
 
-    // Check if the Company exists and belongs to the given project
-    const existingCompany = await prisma.company.findUnique({
+    // Check if the Manager exists and belongs to the given project
+    const existingManager = await prisma.manager.findUnique({
       where: {
-        id: parseInt(companyId),
+        id: parseInt(managerId),
       }
     });
 
-    if (!existingCompany) {
-      return res.status(404).json({ error: `The Company with ID ${companyId} does not exist or does not belong ` });
+    if (!existingManager) {
+      return res.status(404).json({ error: `The Manager with ID ${managerId} does not exist or does not belong ` });
     }
 
-    // Update Company information
-    const updatedCompany = await prisma.company.update({
+    // Update Manager information
+    const updatedManager = await prisma.manager.update({
       where: {
-        id: parseInt(companyId),
+        id: parseInt(managerId),
       },
       data: {
         status
       }
     });
 
-    res.status(200).json({ message: 'Success', updatedCompany });
+    res.status(200).json({ message: 'Success', updatedManager });
 
   } catch (error) {
     console.error('Error updating damages:', error);
     res.status(500).json({ error: 'An error occurred while updating damages' });
   }
 };
-const deleteCompany = async (req, res) => {
-  const { companyId } = req.params;
-  console.log("Delete Company", companyId);
+const deleteManager = async (req, res) => {
+  const { managerId } = req.params;
+  console.log("Delete Manager", managerId);
   try {
     // Vérifiez si le dommage existe
-    const existingCompany = await prisma.company.findUnique({
+    const existingManager = await prisma.manager.findUnique({
       where: {
-        id: parseInt(companyId),
+        id: parseInt(managerId),
       }
     });
 
-    if (!existingCompany) {
-      return res.status(404).json({ error: `The Company with ID ${companyId} does not exist or does not belong ` });
+    if (!existingManager) {
+      return res.status(404).json({ error: `The Manager with ID ${managerId} does not exist or does not belong ` });
     }
 
     // Supprimez le dommage
-    await prisma.company.delete({
+    await prisma.manager.delete({
       where: {
-        id: parseInt(companyId),
+        id: parseInt(managerId),
       }
     });
 
     res.status(200).json({ message: 'Damage removed successfully' });
 
   } catch (error) {
-    console.error('Error deleting Company:', error);
-    res.status(500).json({ error: 'An error occurred while deleting Company' });
+    console.error('Error deleting Manager:', error);
+    res.status(500).json({ error: 'An error occurred while deleting Manager' });
   }
 };
 
@@ -218,20 +216,35 @@ const CreateUser = async (req, res, entityType) => {
     const profileImage = req.files;
     console.log({profileImage});
     const userData = req.body
+    console.log({userData});
+
     const user = await getUserByEmail(userData.email, entityType);
     if (user) {
       return res.status(400).json({ error: 'Email already in use' });
     }
+
     //générer un mot de passe de 12 caractères
     const securePassword = generateSecurePassword(12);
     // Création d'un nouveau hash pour le mot de passe
     const hashedPassword = await bcrypt.hash(securePassword, 10);
     const token = await generateToken()
-    // Création d'un nouveau user avec Prisma
+    // Création d'un nouveau user avec Prisma    
+    if (userData.companyname)
+      {
+        const manager = await prisma.manager.findUnique({
+          where: {
+            companyname: userData.companyname
+          }  
+      });          
+      if (manager) {
+        return res.status(400).json({ error: 'company with this name already exist' });
+      }
+      }
     const newUser = await createUser({
       ...userData,
 
-      companyId: userData.companyId ? parseInt(userData.companyId) : undefined,
+      managerId: userData.managerId ? parseInt(userData.managerId) : undefined,
+
       role: userData.role ? parseInt(userData.role) : undefined,
       status: userData.status ? parseInt(userData.status) : undefined,
 
@@ -244,11 +257,11 @@ const CreateUser = async (req, res, entityType) => {
     }, entityType);
 
     await sendPasswordByEmail(newUser.email, newUser.Token, securePassword, entityType)
-    res.status(200).json({ message: ' Employee created successfully', });
+    res.status(200).json({ message: ' user created successfully', });
 
   } catch (error) {
-    console.error('Error deleting Company:', error);
-    res.status(500).json({ error: 'An error occurred while deleting Company' });
+    console.error('Error deleting Manager:', error);
+    res.status(500).json({ error: 'An error occurred while creating user' });
   }
 };
-module.exports = { getAllCompany, updateCompany, deleteCompany, getAllEmployee, updateEmployee, deleteEmployee, CreateUser };
+module.exports = { getAllManager, updateManager, deleteManager, getAllEmployee, updateEmployee, deleteEmployee, CreateUser };

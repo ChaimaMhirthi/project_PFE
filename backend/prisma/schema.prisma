@@ -15,7 +15,7 @@ model SuperAdmin {
   // Relation avec les entreprises
 }
 
-model Company {
+model Manager {
   id        Int     @id @default(autoincrement())
   firstname String
   lastname  String
@@ -60,8 +60,8 @@ model Employee {
   comments            Comment[]
   role                Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
   accountVerified     Boolean?                    @default(false)
-  companyId           Int
-  company             Company                     @relation(fields: [companyId], references: [id]) // Relation obligatoire avec l'companyistrateur
+  managerId           Int
+  manager             Manager                     @relation(fields: [managerId], references: [id]) // Relation obligatoire avec l'manageristrateur
   status              Int?                        @default(0)
 }
 
@@ -85,8 +85,8 @@ model Project {
   startdate          DateTime
   enddate            DateTime
   status             Int?                        @default(0)
-  companyId          Int // Define a foreign key referencing company
-  company            Company                     @relation(fields: [companyId], references: [id])
+  managerId          Int // Define a foreign key referencing manager
+  manager            Manager                     @relation(fields: [managerId], references: [id])
   creatorId          Int // Nouvelle colonne pour stocker l'ID du créateur
   resources          Resource[]
   employee           EmployeeProjectAssignment[]
@@ -117,8 +117,8 @@ model Infrastructure {
   span               Int?
   length             Int?
   image              String?
-  companyId          Int
-  company            Company   @relation(fields: [companyId], references: [id])
+  managerId          Int
+  manager            Manager   @relation(fields: [managerId], references: [id])
   InspectionProjects Project[]
 }
 
@@ -143,8 +143,8 @@ model Comment {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   damageId    Int?
-  companyId   Int?
-  company     Company?  @relation(fields: [companyId], references: [id])
+  managerId   Int?
+  manager     Manager?  @relation(fields: [managerId], references: [id])
   employeeId  Int?
   employee    Employee? @relation(fields: [employeeId], references: [id])
 }

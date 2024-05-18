@@ -1,18 +1,18 @@
 -- CreateTable
-CREATE TABLE `Company` (
+CREATE TABLE `Manager` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `firstname` VARCHAR(191) NOT NULL,
     `lastname` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
-    `company` VARCHAR(191) NOT NULL,
+    `manager` VARCHAR(191) NOT NULL,
     `country` VARCHAR(191) NOT NULL,
     `city` VARCHAR(191) NOT NULL,
     `password` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `Company_email_key`(`email`),
+    UNIQUE INDEX `Manager_email_key`(`email`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -27,7 +27,7 @@ CREATE TABLE `Employee` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `role` INTEGER NOT NULL DEFAULT 0,
-    `companyId` INTEGER NOT NULL,
+    `managerId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Employee_email_key`(`email`),
     PRIMARY KEY (`id`)
@@ -51,7 +51,7 @@ CREATE TABLE `Project` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `status` BOOLEAN NULL DEFAULT false,
-    `companyId` INTEGER NOT NULL,
+    `managerId` INTEGER NOT NULL,
     `creatorId` INTEGER NOT NULL,
     `infrastructureId` INTEGER NOT NULL,
 
@@ -72,7 +72,7 @@ CREATE TABLE `Infrastructure` (
     `span` INTEGER NULL,
     `length` INTEGER NULL,
     `image` VARCHAR(191) NULL,
-    `companyId` INTEGER NOT NULL,
+    `managerId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Infrastructure_name_key`(`name`),
     PRIMARY KEY (`id`)
@@ -98,7 +98,7 @@ CREATE TABLE `Comment` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `damageId` INTEGER NULL,
-    `companyId` INTEGER NULL,
+    `managerId` INTEGER NULL,
     `employeeId` INTEGER NULL,
 
     PRIMARY KEY (`id`)
@@ -125,7 +125,7 @@ CREATE TABLE `Damage` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `Employee` ADD CONSTRAINT `Employee_companyId_fkey` FOREIGN KEY (`companyId`) REFERENCES `Company`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Employee` ADD CONSTRAINT `Employee_managerId_fkey` FOREIGN KEY (`managerId`) REFERENCES `Manager`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `EmployeeProjectAssignment` ADD CONSTRAINT `EmployeeProjectAssignment_employeeId_fkey` FOREIGN KEY (`employeeId`) REFERENCES `Employee`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -134,13 +134,13 @@ ALTER TABLE `EmployeeProjectAssignment` ADD CONSTRAINT `EmployeeProjectAssignmen
 ALTER TABLE `EmployeeProjectAssignment` ADD CONSTRAINT `EmployeeProjectAssignment_projectId_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Project` ADD CONSTRAINT `Project_companyId_fkey` FOREIGN KEY (`companyId`) REFERENCES `Company`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Project` ADD CONSTRAINT `Project_managerId_fkey` FOREIGN KEY (`managerId`) REFERENCES `Manager`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Project` ADD CONSTRAINT `Project_infrastructureId_fkey` FOREIGN KEY (`infrastructureId`) REFERENCES `Infrastructure`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Infrastructure` ADD CONSTRAINT `Infrastructure_companyId_fkey` FOREIGN KEY (`companyId`) REFERENCES `Company`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Infrastructure` ADD CONSTRAINT `Infrastructure_managerId_fkey` FOREIGN KEY (`managerId`) REFERENCES `Manager`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Resource` ADD CONSTRAINT `Resource_projectId_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -149,7 +149,7 @@ ALTER TABLE `Resource` ADD CONSTRAINT `Resource_projectId_fkey` FOREIGN KEY (`pr
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_damageId_fkey` FOREIGN KEY (`damageId`) REFERENCES `Damage`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Comment` ADD CONSTRAINT `Comment_companyId_fkey` FOREIGN KEY (`companyId`) REFERENCES `Company`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `Comment` ADD CONSTRAINT `Comment_managerId_fkey` FOREIGN KEY (`managerId`) REFERENCES `Manager`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_employeeId_fkey` FOREIGN KEY (`employeeId`) REFERENCES `Employee`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
