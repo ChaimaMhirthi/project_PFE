@@ -1,37 +1,29 @@
 const router = require('express').Router();
+const { adminLogin,getManagerName,registerUser, login,verifyOTP,forgotPassword,resetPassword ,resendOTPByEmail } = require('../controller/auth');
 
-const { getUserByEmail} = require('../controller/user');
-const {register , login} = require('../controller/auth');
 
-router.post('/register',async (req, response) => {
-    const userData = req.body;
-    try {
-        const existingUser = await getUserByEmail(userData);
-        if(existingUser) {
-            response.status(400).json({ error: 'User already exists' });
-            return;
-        }
-        if(!userData.email || !userData.password || !userData.role ) {
-            response.status(400).json({ error: 'Email , password or role are required' });
-            return;
-        }
-        const result = await register(userData);
-        response.json(result);
-    } catch (error) {
-        console.error('Error in POST /create:', error);
-        response.status(500).json({ error: 'Error creating user' });
-    }
-});
 
-router.post('/login',async (req, response) => {
-    const userData = req.body;
-    try {
-        const user = await login(userData);
-        response.json(user);
-    } catch (error) {
-        console.error('Error in POST /create:', error);
-        response.status(500).json({ error: 'Error getting user' });
-    }
-});
+
+router.post('/manager-register', (req, res) => registerUser(req, res, 'manager'));
+router.post('/manager-login', (req, res) => login(req, res, 'manager'));
+router.post('/manager-verify-otp', (req, res) => verifyOTP(req, res, 'manager'));
+router.post('/manager-reset-password', (req, res) => resetPassword(req, res, 'manager'));
+router.post('/manager-forgot-password', (req, res) => forgotPassword(req, res, 'manager'));
+router.post('/manager-resend-otp', (req, res) => resendOTPByEmail(req, res, 'manager'));
+
+router.post('/employee-register', (req, res) => registerUser(req, res, 'employee'));
+router.post('/employee-login', (req, res) => login(req, res, 'employee'));
+router.post('/employee-verify-otp', (req, res) => verifyOTP(req, res, 'employee'));
+router.post('/employee-reset-password', (req, res) => resetPassword(req, res, 'employee'));
+router.post('/employee-forgot-password', (req, res) => forgotPassword(req, res, 'employee'));
+router.post('/employee-resend-otp', (req, res) => resendOTPByEmail(req, res, 'employee'));
+
+
+router.post('/superAdmin-login',adminLogin );
+
+
+router.get('/get-allmanager',getManagerName);
+
+
 
 module.exports = router;

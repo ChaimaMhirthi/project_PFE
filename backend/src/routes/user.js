@@ -1,61 +1,20 @@
 const router = require('express').Router();
-
-const { createUser, updateUser, deleteUser, getUserById, getAllUsers } = require('../controller/user');
-
-router.post('/create', async (req, response) => {
-    const userData = req.body;
-    try {
-        const result = await createUser(userData);
-        response.json(result);
-    } catch (error) {
-        console.error('Error in POST /create:', error);
-        response.status(500).json({ error: 'Error creating user' });
-    }
-});
-
-router.get('/get/:id', async (req, response) => {
-    const id = parseInt(req.params.id);
-    try {
-        const result = await getUserById(id);
-        response.json(result);
-    } catch (error) {
-        console.error('Error in GET /get:', error);
-        response.status(500).json({ error: 'Error getting user' });
-    }
-});
-
-router.get('/getAll', async (req, response) => {
-    try {
-        const result = await getAllUsers();
-        response.json(result);
-    } catch (error) {
-        console.error('Error in GET /getAll:', error);
-        response.status(500).json({ error: 'Error getting users' });
-    }
-});
+const {  getAllEmployee ,updateEmployee,deleteEmployee ,getAllManager ,deleteManager,updateManager,CreateUser} = require('../controller/users');
+const {  isSuperAdmin } = require('../middleware/authenticationToken');
+const { multerUploadProfileImage } = require('../config/multer');
 
 
-router.put('/update/:id', async (req, response) => {
-    const id = parseInt(req.params.id);
-    const userData = req.body;
-    try {
-        const result = await updateUser(id, userData);
-        response.json(result);
-    } catch (error) {
-        console.error('Error in PUT /update:', error);
-        response.status(500).json({ error: 'Error updating user' });
-    }
-});
+// employees management
+router.get('/get-allemployee',getAllEmployee);
+router.post('/update-employee',updateEmployee);
+router.delete('/delete-employee/:employeeId',deleteEmployee);
+router.post('/create-employee', multerUploadProfileImage.any(),(req, res) => CreateUser(req, res, 'employee'));
 
-router.delete('/delete/:id', async (req, response) => {
-    const id = parseInt(req.params.id);
-    try {
-        const result = await deleteUser(id);
-        response.json(result);
-    } catch (error) {
-        console.error('Error in DELETE /delete:', error);
-        response.status(500).json({ error: 'Error deleting user' });
-    }
-});
+// manager management
+router.post('/create-manager', multerUploadProfileImage.any(),(req, res) => CreateUser(req, res, 'manager'));
+
+router.get('/get-allmanager',getAllManager);
+router.post('/update-manager',updateManager);
+router.delete('/delete-manager/:managerId',deleteManager);
 
 module.exports = router;
