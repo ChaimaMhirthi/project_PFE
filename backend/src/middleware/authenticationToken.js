@@ -37,7 +37,16 @@ const canCreateProject = async (req, res, next) => {
         return res.status(401).json({ error: 'Unauthorized ,only admin or project manger can create project' });
     }
 };
-
+const canManageInfrastructures = async (req, res, next) => {
+  const { user } = req;
+  if (user.user === 'manager' || (user.user === 'employee' && user.role === 3)) {
+      // L'utilisateur est autorisé, passe au middleware suivant
+      next();
+  } else {
+      // L'utilisateur n'est pas autorisé à créer un projet
+      return res.status(401).json({ error: 'Unauthorized ,only admin or project manager can Manage the Infrastructures' });
+  }
+};
 const canAddRessources = async (req, res, next) => {
   const { user } = req;
   if (user.user === 'employee' && user.role === 1) {
@@ -88,6 +97,6 @@ const isSuperAdmin= async (req, res, next) => {
       return res.status(401).json({ error: 'Unauthorized ,only super admin can ..' });
   }
 };
-module.exports = { isSuperAdmin,authenticateToken, canCreateProject ,canAddRessources ,canStartProcess ,canConfirmResource ,canEvaluate,canEvaluate};
+module.exports = {canManageInfrastructures, isSuperAdmin,authenticateToken, canCreateProject ,canAddRessources ,canStartProcess ,canConfirmResource ,canEvaluate,canEvaluate};
 
 

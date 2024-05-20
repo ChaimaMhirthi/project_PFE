@@ -9,14 +9,14 @@ const createComment = async (req, res) => {
     // Check if the DamageImage exists
     const damageImage = await DamageImage.findById(DamageImageId);
     if (!damageImage) {
-      return res.status(404).json({ message: 'DamageImage not found' });
+      return res.status(404).json({ error: 'DamageImage not found' });
     }
 
     // Check if the Accountmanager exists, if provided
     if (AccountmanagerId) {
       const accountmanager = await Accountmanager.findById(AccountmanagerId);
       if (!accountmanager) {
-        return res.status(404).json({ message: 'Accountmanager not found' });
+        return res.status(404).json({ error: 'Accountmanager not found' });
       }
     }
 
@@ -24,7 +24,7 @@ const createComment = async (req, res) => {
     if (GuestId) {
       const guest = await Guest.findById(GuestId);
       if (!guest) {
-        return res.status(404).json({ message: 'Guest not found' });
+        return res.status(404).json({ error: 'Guest not found' });
       }
     }
 
@@ -40,7 +40,7 @@ const createComment = async (req, res) => {
 
     res.status(201).json(comment);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 

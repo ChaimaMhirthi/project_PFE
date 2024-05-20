@@ -481,7 +481,7 @@ const hashedPassword = await bcrypt.hash(password, 10);
     } catch (error) {
       // Gérer les erreurs de manière appropriée
       console.error('Erreur lors de l\'authentification du superadmin:', error);
-      return res.status(500).json({ message: 'Erreur lors de l\'authentification du superadmin.' });
+      return res.status(500).json({ error: 'Erreur lors de l\'authentification du superadmin.' });
     }});
 
 const getUserByEmail = async (email, entityType) => {
