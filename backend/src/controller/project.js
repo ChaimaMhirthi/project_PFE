@@ -1,35 +1,35 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const axios = require('axios');
-const { updateExistingInfrastructure ,createNewInfrastructure} = require('../controller/infrastructure');
+const { updateExistingInfrastructure, createNewInfrastructure } = require('../controller/infrastructure');
 
 // const { createResourceForProject } = require('./inspectionResource')
 const getAllEmployee = async (req, res) => {
-    const { managerId  } = req.user;
+    const { managerId } = req.user;
 
     try {
-      // Récupérer les infrastructures associées aux projets de l'entreprise
-      const AllEmployee = await prisma.employee.findMany({
-        where: {
-          managerId: managerId,
-        
-        },
-        select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            role:true
-          }
-      });
-  
-  
-      res.status(200).json({ message: 'recupereation avec succes des employee ', AllEmployee });
-  
+        // Récupérer les infrastructures associées aux projets de l'entreprise
+        const AllEmployee = await prisma.employee.findMany({
+            where: {
+                managerId: managerId,
+
+            },
+            select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                role: true
+            }
+        });
+
+
+        res.status(200).json({ message: 'recupereation avec succes des employee ', AllEmployee });
+
     } catch (error) {
-      console.error('Erreur lors de la récupération des employee :', error);
-      res.status(500).json({ error: 'Erreur interne du serveur' });
+        console.error('Erreur lors de la récupération des employee :', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
     }
-  };
+};
 const getMultiFormStepData = async (req, res) => {
     const { projectId } = req.params;
     try {
@@ -49,10 +49,26 @@ const getMultiFormStepData = async (req, res) => {
 }
 
 const getProjects = async (req, res) => {
-    const { managerId } = req.user;
+    const { managerId, employeeId } = req.user;
     try {
         let projects;
-        if (managerId ) {
+        if (employeeId) {
+            console.log("getProjects", employeeId);
+
+            const employeeProjectAssignments = await prisma.employeeProjectAssignment.findMany({
+                where: {
+                    employeeId: employeeId
+                },
+                include: {
+                    project: {
+                        include: { infrastructure: true, manager: true }
+                    }
+                }
+            });
+            projects = employeeProjectAssignments.map(assignment => assignment.project);
+            console.log("project assig employee", projects);
+        }
+        else if (managerId) {
             // Si managerId est défini, récupérer les projets associés à cet ID
             projects = await prisma.project.findMany({
                 where: {
@@ -60,7 +76,8 @@ const getProjects = async (req, res) => {
                 },
                 include: { infrastructure: true, manager: true },
             });
-        } else {
+        }
+        else {
             // Si managerId n'est pas défini, récupérer tous les projets
             projects = await prisma.project.findMany({
                 include: { infrastructure: true, manager: true },
@@ -240,10 +257,10 @@ const createProject = async (req, res) => {
         ...(employeeAssignment.guestsId || [])
     ];
     console.log({ ids });
-        console.log({ employeeAssignment });
+    console.log({ employeeAssignment });
 
-    const { managerId, employeeId ,role} = req.user;
-    console.log({ managerId, employeeId,role }) ;
+    const { managerId, employeeId, role } = req.user;
+    console.log({ managerId, employeeId, role });
 
     try {
         // Vérifier si le nom de projet est unique
@@ -272,7 +289,7 @@ const createProject = async (req, res) => {
                 infrastructureId: infrastructureID,
                 creatorId: employeeId || managerId,
                 managerId: managerId,
-              
+
                 employee: {
                     create: ids.map(employeeId => ({
                         employee: { connect: { id: employeeId } }
@@ -359,10 +376,10 @@ const start_process = async (req, res) => {
 const addRessources = async (req, res) => {
     const { projectId } = req.body;
     const resources = req.files;
-    console.log({resources});
-    console.log({projectId});
-    const { managerId, employeeId ,role} = req.user;
-    console.log({ managerId, employeeId,role }) ;
+    console.log({ resources });
+    console.log({ projectId });
+    const { managerId, employeeId, role } = req.user;
+    console.log({ managerId, employeeId, role });
     try {
         const projectIdInt = parseInt(projectId, 10);
         // Utilisez await avec createInspectionResources car c'est une fonction asynchrone
@@ -376,57 +393,57 @@ const addRessources = async (req, res) => {
 const checkData = async (req, res) => {
     console.log('checkData')
     const { projectId } = req.body;
-    console.log('projectId',{ projectId });
+    console.log('projectId', { projectId });
     const { managerId, employeeId, role } = req.user;
-    console.log('checkData',{ managerId, employeeId, role });
-  
+    console.log('checkData', { managerId, employeeId, role });
+
     try {
-     
-      // Vérifier si le projet existe
-      const project = await prisma.project.findUnique({
-        where: {
-          id: parseInt(projectId) ,
-        },
-      });
-  
-      if (!project) {
-        return res.status(404).json({ error: 'Projet not found' });
-      }
-  
-      // Vérifier s'il existe au moins un média de type 'image/' ou 'video/' associé au projet
-      const hasImageMedia = await prisma.resource.findFirst({
-        where: {
-          projectId: project.id,
-          type: {
-            startsWith: 'image/',
-          },
-        },
-      });
-  
-         // Vérifier s'il existe au moins un média de type 'video/' associé au projet
-    const hasVideoMedia = await prisma.resource.findFirst({
-        where: {
-          projectId: project.id,
-          type: {
-            startsWith: 'video/',
-          },
-        },
-      });
-  
-      if (!hasImageMedia && !hasVideoMedia) {
-        return res.status(404).json({ error: 'Aucun média de type image ou vidéo associé à ce projet' });
-      }
-      // Envoyez une réponse une fois que la vérification est terminée
-      res.status(200).json({ message: 'Le projet et les médias existent' });
+
+        // Vérifier si le projet existe
+        const project = await prisma.project.findUnique({
+            where: {
+                id: parseInt(projectId),
+            },
+        });
+
+        if (!project) {
+            return res.status(404).json({ error: 'Projet not found' });
+        }
+
+        // Vérifier s'il existe au moins un média de type 'image/' ou 'video/' associé au projet
+        const hasImageMedia = await prisma.resource.findFirst({
+            where: {
+                projectId: project.id,
+                type: {
+                    startsWith: 'image/',
+                },
+            },
+        });
+
+        // Vérifier s'il existe au moins un média de type 'video/' associé au projet
+        const hasVideoMedia = await prisma.resource.findFirst({
+            where: {
+                projectId: project.id,
+                type: {
+                    startsWith: 'video/',
+                },
+            },
+        });
+
+        if (!hasImageMedia && !hasVideoMedia) {
+            return res.status(404).json({ error: 'Aucun média de type image ou vidéo associé à ce projet' });
+        }
+        // Envoyez une réponse une fois que la vérification est terminée
+        res.status(200).json({ message: 'Le projet et les médias existent' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Une erreur s\'est produite lors de la vérification' });
+        console.error(error);
+        res.status(500).json({ error: 'Une erreur s\'est produite lors de la vérification' });
     }
-  };
+};
 
-  const ConfirmResource = async (req, res) => {
+const ConfirmResource = async (req, res) => {
 
-   const { projectId } = req.body;
+    const { projectId } = req.body;
 
     try {
         const project = await prisma.project.findUnique({
@@ -439,16 +456,16 @@ const checkData = async (req, res) => {
             return res.status(404).json({ error: 'Project instance not found' });
         }
 
-        
-            await prisma.project.update({
-                where: {
-                    id: parseInt(projectId)
-                },
-                data: {
-                    status: 1
-                }
-            });
-    
+
+        await prisma.project.update({
+            where: {
+                id: parseInt(projectId)
+            },
+            data: {
+                status: 1
+            }
+        });
+
 
         res.status(200).json({ message: 'Project instance found and updated successfully' });
     } catch (error) {
@@ -457,6 +474,6 @@ const checkData = async (req, res) => {
     }
 
 }
-module.exports = { createProject, updateProject, getProjects, deleteProject, start_process,getMultiFormStepData , createNewInfrastructure,getAllEmployee,addRessources,checkData,ConfirmResource};
+module.exports = { createProject, updateProject, getProjects, deleteProject, start_process, getMultiFormStepData, createNewInfrastructure, getAllEmployee, addRessources, checkData, ConfirmResource };
 
 

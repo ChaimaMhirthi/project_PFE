@@ -13,7 +13,7 @@ const deleteInfrastructure = async (req, res) => {
     });
 
     if (!infrastructureToDelete) {
-      return res.status(404).json({ message: 'Infrastructure non trouvée' });
+      return res.status(404).json({ error: 'Infrastructure non trouvée' });
     }
 
     // Supprimer l'infrastructure
@@ -26,19 +26,19 @@ const deleteInfrastructure = async (req, res) => {
     res.status(200).json({ message: 'Infrastructure supprimée avec succès' });
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'infrastructure :', error);
-    res.status(500).json({ message: 'Erreur lors de la suppression de l\'infrastructure' });
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'infrastructure' });
   }
 };
 const createNewInfrastructure = async (req, res) => {
   const InfrastructureForm = req.body;
-  console.log("InfrastructureForm",InfrastructureForm);
-  const infrastructureImage = req.files;
+  const infrastructureImage = req.files[0]?.originalname;
+
+
   const { managerId } = req.user;
-  console.log("createNewInfrastructure ", InfrastructureForm);
   try {
     // Valider les données du formulaire
     if (!InfrastructureForm.name || !InfrastructureForm.type) {
-      return res.status(400).json({ message: 'Veuillez fournir le nom et le type de l\'infrastructure' });
+      return res.status(400).json({ error: 'Veuillez fournir le nom et le type de l\'infrastructure' });
     }
     const existingInfrastructure = await prisma.infrastructure.findFirst({
       where: {
@@ -47,7 +47,7 @@ const createNewInfrastructure = async (req, res) => {
     });
 
     if (existingInfrastructure) {
-      return res.status(400).json({ message: 'Une infrastructure avec ce nom existe déjà' });
+      return res.status(400).json({ error: 'Une infrastructure avec ce nom existe déjà' });
     }
     // Créer une nouvelle infrastructure dans la base de données
     const newInfrastructure = await prisma.infrastructure.create({
@@ -56,7 +56,7 @@ const createNewInfrastructure = async (req, res) => {
         constructionDate: InfrastructureForm.constructionDate ? new Date(InfrastructureForm.constructionDate) : null,
         span: InfrastructureForm.span ? parseInt(InfrastructureForm.span, 10) : null,
         length: InfrastructureForm.length ? parseInt(InfrastructureForm.length, 10) : null,
-        image: infrastructureImage[0]?.originalname,
+        image: infrastructureImage,
         managerId: managerId
       }
     });
@@ -68,10 +68,10 @@ const createNewInfrastructure = async (req, res) => {
     // Gérer les erreurs
     if (error.code === 'P2002') {
       // Contrainte de clé unique violée
-      return res.status(400).json({ message: 'Une infrastructure avec ce nom existe déjà' });
+      return res.status(400).json({ error: 'Une infrastructure avec ce nom existe déjà' });
     } else {
       // Erreur système imprévue
-      return res.status(500).json({ message: 'Erreur lors de la création de l\'infrastructure' });
+      return res.status(500).json({ error: 'Erreur lors de la création de l\'infrastructure' });
     }
   }
 };
@@ -123,7 +123,7 @@ const updateExistingInfrastructure = async (req, res) => {
     res.status(200).json({ message: 'Infrastructure modifiée avec succès', infrastrId: InfrastructureUpdated.id });
   } catch (error) {
     console.error("Erreur lors de la mise à jour de l'infrastructure :", error);
-    res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'infrastructure' });
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'infrastructure' });
   }
 };
 
