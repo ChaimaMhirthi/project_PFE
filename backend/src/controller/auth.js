@@ -53,13 +53,25 @@ const sendPasswordByEmail = async (email, Token, Password, entityType) => {
         const loginLink = `${process.env.LOGIN_LINK}?token=${encodeURIComponent(Token)}&user=${encodeURIComponent(entityType)}`;
 
         // Options de l'e-mail
-        const mailOptions = {
-            from: 'hammaabbes5@gmail.com',
-            to: email,
-            subject: 'Bienvenue dans notre entreprise',
-            text: `Cher employé,\n\nBienvenue dans notre entreprise !\n\nVotre compte a été créé avec succès.\n\nVous pouvez vous connecter en cliquant sur ce lien : ${loginLink}\n\nCordialement,\nVotre équipe de support`,
-            html: `<p>Cher employé,</p><p>Bienvenue dans notre entreprise !</p><p>Votre compte a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Vous pouvez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Cordialement,<br>Votre équipe de support</p>`
-        };
+        if (entityType === 'manager') {
+            mailOptions = {
+                from: 'hammaabbes5@gmail.com',
+                to: email,
+                subject: 'Invitation à utiliser notre application en tant qu\'Manager',
+                text: `Cher administrateur,\n\nVous avez été invité à utiliser notre application en tant qu'administrateur.\n\nVotre compte administrateur a été créé avec succès.\n\nPour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : ${loginLink}\n\nNous sommes ravis de votre rejoindre a notre application.\n\nCordialement,\nVotre équipe de support`,
+                html: `<p>Cher administrateur,</p><p>Vous avez été invité à utiliser notre application en tant qu'administrateur.</p><p>Votre compte administrateur a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Pour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Nous sommes ravis de votre rejoindre a notre application.</p><p>Cordialement,<br>Votre équipe de support</p>`
+            };
+        }
+       else if (entityType === 'employee') {
+            mailOptions = {
+                from: 'hammaabbes5@gmail.com',
+                to: email,
+                subject: 'Invitation à utiliser notre application en tant qu\'employee',
+                text: `Cher utilisateur,\n\nVous avez été invité à utiliser notre application en tant qu'un employee.\n\nVotre compte a été créé avec succès.\n\nPour commencer à utiliser l'application, veuillez vous connecter en cliquant sur ce lien : ${loginLink}\n\nNous sommes ravis de vous avoir cr`,
+                html: `<p>Cher employee,</p><p>Vous avez été invité à utiliser notre application en tant qu'un employee.</p><p>Votre compte a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Pour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Nous sommes ravis de votre rejoindre a notre application.</p><p>Cordialement,<br>Votre équipe de support</p>`
+            };
+        }
+        
         // Envoi de l'e-mail
 
         const info = await transporter.sendMail(mailOptions); return info;
@@ -469,8 +481,9 @@ const hashedPassword = await bcrypt.hash(password, 10);
       accessToken = jwt.sign(
         {
             user: {
-                superAdminId:superadmin.id,
-                user: "superAdmin",            
+                username:superadmin.username,
+                superAdminId: superadmin.id,    
+                user:"superAdmin"        
             }
         },
         process.env.ACCESS_TOKEN_SECRET,

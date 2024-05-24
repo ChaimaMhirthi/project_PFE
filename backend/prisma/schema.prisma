@@ -22,47 +22,48 @@ model Manager {
   phone     String?
   email     String  @unique
 
-  companyname  String @unique
+  companyname  String  @unique
   profileImage String?
 
-  address             String
-  accountVerified     Boolean?         @default(false)
-  Token          String?          @unique
-  TokenExpiresAt DateTime?
-  password            String
-  otp                 String?
-  otpExpiresAt        DateTime?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  status              Int?             @default(0)
-  projects            Project[]
-  comments            Comment[]
-  employee            Employee[]
-  infrastructure      Infrastructure[]
+  address         String?
+  accountVerified Boolean?         @default(false)
+  Token           String?          @unique
+  TokenExpiresAt  DateTime?
+  password        String
+  otp             String?
+  otpExpiresAt    DateTime?
+  createdAt       DateTime?        @default(now())
+  updatedAt       DateTime?        @updatedAt
+  status          Int?             @default(0)
+  projects        Project[]
+  comments        Comment[]
+  employee        Employee[]
+  infrastructure  Infrastructure[]
 }
 
 model Employee {
-  id                  Int                         @id @default(autoincrement())
-  firstname           String
-  lastname            String
-  email               String                      @unique
-  address             String
-  profileImage        String?
-  phone               String?
-  password            String
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  Token          String?                     @unique
-  TokenExpiresAt DateTime?
-  otp                 String?
-  otpExpiresAt        DateTime?
-  project             EmployeeProjectAssignment[]
-  comments            Comment[]
-  role                Int                         @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
-  accountVerified     Boolean?                    @default(false)
-  managerId           Int
-  manager             Manager                     @relation(fields: [managerId], references: [id]) // Relation obligatoire avec l'manageristrateur
-  status              Int?                        @default(0)
+  id              Int                         @id @default(autoincrement())
+  firstname       String
+  lastname        String
+  email           String                      @unique
+  address         String?
+  profileImage    String?
+  phone           String?
+  password        String
+  createdAt       DateTime?                   @default(now())
+  updatedAt       DateTime?                   @updatedAt
+  Token           String?                     @unique
+  TokenExpiresAt  DateTime?
+  otp             String?
+  otpExpiresAt    DateTime?
+  project         EmployeeProjectAssignment[]
+  comments        Comment[]
+  role            Int?                        @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
+  accountVerified Boolean?                    @default(false)
+  managerId       Int
+  manager         Manager                     @relation(fields: [managerId], references: [id]) // Relation obligatoire avec l'manageristrateur
+  status          Int?                        @default(0)
+  mission         Mission[]
 }
 
 model EmployeeProjectAssignment {
@@ -92,8 +93,21 @@ model Project {
   employee           EmployeeProjectAssignment[]
   infrastructureId   Int
   infrastructure     Infrastructure              @relation(fields: [infrastructureId], references: [id])
-  mediaentryfinished Boolean?                    @default(false)
+  dataCollectionDone Boolean?                    @default(false)
   aiProcessing       AiProcessingProject?
+}
+
+model Mission {
+  id          Int      @id @default(autoincrement())
+  creatorId   Int
+  creatorType String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  title       String
+  description String
+  employeeId  Int
+  status      Int      @default(0)
+  employee    Employee @relation(fields: [employeeId], references: [id])
 }
 
 model AiProcessingProject {

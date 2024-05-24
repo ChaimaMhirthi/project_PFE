@@ -49,25 +49,35 @@ const getMultiFormStepData = async (req, res) => {
 }
 
 const getProjects = async (req, res) => {
-    const { managerId, employeeId } = req.user;
+    const { managerId, employeeId, role ,superAdminId } = req.user;
     try {
         let projects;
         if (employeeId) {
             console.log("getProjects", employeeId);
-
-            const employeeProjectAssignments = await prisma.employeeProjectAssignment.findMany({
-                where: {
-                    employeeId: employeeId
-                },
-                include: {
-                    project: {
-                        include: { infrastructure: true, manager: true }
+            if (role !== 3) {
+                const employeeProjectAssignments = await prisma.employeeProjectAssignment.findMany({
+                    where: {
+                        employeeId: employeeId
+                    },
+                    include: {
+                        project: {
+                            include: { infrastructure: true, manager: true }
+                        }
                     }
-                }
-            });
-            projects = employeeProjectAssignments.map(assignment => assignment.project);
-            console.log("project assig employee", projects);
+                });
+                projects = employeeProjectAssignments.map(assignment => assignment.project);
+            }
+            else {
+                projects = await prisma.project.findMany({
+                    where: {
+                        creatorId: employeeId
+                    },
+                    include: { infrastructure: true, manager: true },
+                });
+            }
         }
+
+
         else if (managerId) {
             // Si managerId est défini, récupérer les projets associés à cet ID
             projects = await prisma.project.findMany({
@@ -77,7 +87,7 @@ const getProjects = async (req, res) => {
                 include: { infrastructure: true, manager: true },
             });
         }
-        else {
+        else if(superAdminId) {
             // Si managerId n'est pas défini, récupérer tous les projets
             projects = await prisma.project.findMany({
                 include: { infrastructure: true, manager: true },
@@ -305,7 +315,29 @@ const createProject = async (req, res) => {
     }
 };
 
+const checkProcessingAllowed = async (req, res) => {
+    const { projectId } = req.body;
+    try {
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+        });
 
+        if (!project) {
+            return res.status(404).json({ error: 'Le projet avec l\'ID donné n\'existe pas.' });
+        }
+        if (project.status !== 1) {
+            return res.status(422).json({ error: "You cannot start the processing because the data collection step is not confirmed " });
+        }
+
+        return res.status(200).json({ message: "Processing allowed! Your can start processing is valid" });
+
+    }
+    catch (error) {
+
+        return res.status(500).json({ error: 'Erreur est srvenue lors du  traitement des donnes' });
+
+    }
+}
 const start_process = async (req, res) => {
     const { managerId } = req.user;
     const { projectId } = req.body;
@@ -320,10 +352,12 @@ const start_process = async (req, res) => {
         });
 
         if (!project) {
-            return res.status(200).json({ message: 'Le projet avec l\'ID donné n\'existe pas.' });
+            return res.status(404).json({ error: 'Le projet avec l\'ID donné n\'existe pas.' });
         }
 
-
+        if (project.status !== 1) {
+            return res.status(422).json({ error: "You cannot start the processing because the data collection step is not confirmed " });
+        }
         // Créer un objet où chaque nom de ressource est une valeur associée à une clé unique
         const namedResources = {};
         project.resources.forEach(resource => {
@@ -383,6 +417,14 @@ const addRessources = async (req, res) => {
     try {
         const projectIdInt = parseInt(projectId, 10);
         // Utilisez await avec createInspectionResources car c'est une fonction asynchrone
+        const project = await prisma.project.findUnique({
+            where: {
+                id: parseInt(projectId)
+            }
+        });
+        if (project.status !== 0) {
+            return res.status(409).json({ error: 'The data collection step is already marked as complete. You cant upload more data' });
+        }
         await createInspectionResources(resources, projectIdInt);
         // Envoyez une réponse une fois que la création des ressources est terminée
         res.status(200).json({ message: 'Ressources ajoutées avec succès' });
@@ -390,26 +432,25 @@ const addRessources = async (req, res) => {
         res.status(500).json({ error: 'Une erreur s\'est produite lors de l\'ajout des ressources' });
     }
 }
-const checkData = async (req, res) => {
-    console.log('checkData')
+
+const ConfirmResource = async (req, res) => {
+
     const { projectId } = req.body;
-    console.log('projectId', { projectId });
-    const { managerId, employeeId, role } = req.user;
-    console.log('checkData', { managerId, employeeId, role });
 
     try {
-
-        // Vérifier si le projet existe
         const project = await prisma.project.findUnique({
             where: {
-                id: parseInt(projectId),
-            },
+                id: parseInt(projectId)
+            }
         });
 
         if (!project) {
-            return res.status(404).json({ error: 'Projet not found' });
+            return res.status(404).json({ error: 'Project instance not found' });
         }
 
+        if (project.status === 1) {
+            return res.status(409).json({ error: 'The data collection step is already marked as complete. You may now proceed with the processing' });
+        }
         // Vérifier s'il existe au moins un média de type 'image/' ou 'video/' associé au projet
         const hasImageMedia = await prisma.resource.findFirst({
             where: {
@@ -431,32 +472,8 @@ const checkData = async (req, res) => {
         });
 
         if (!hasImageMedia && !hasVideoMedia) {
-            return res.status(404).json({ error: 'Aucun média de type image ou vidéo associé à ce projet' });
+            return res.status(404).json({ error: 'Data not found. Please upload at least one image or video to validate this step ' });
         }
-        // Envoyez une réponse une fois que la vérification est terminée
-        res.status(200).json({ message: 'Le projet et les médias existent' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Une erreur s\'est produite lors de la vérification' });
-    }
-};
-
-const ConfirmResource = async (req, res) => {
-
-    const { projectId } = req.body;
-
-    try {
-        const project = await prisma.project.findUnique({
-            where: {
-                id: parseInt(projectId)
-            }
-        });
-
-        if (!project) {
-            return res.status(404).json({ error: 'Project instance not found' });
-        }
-
-
         await prisma.project.update({
             where: {
                 id: parseInt(projectId)
@@ -467,13 +484,13 @@ const ConfirmResource = async (req, res) => {
         });
 
 
-        res.status(200).json({ message: 'Project instance found and updated successfully' });
+        res.status(201).json({ message: 'The data collection step is marked as complete. You may now proceed with the processing' });
     } catch (error) {
         console.error('Error processing project request:', error);
         res.status(500).json({ error: 'An error occurred while processing project request' });
     }
 
 }
-module.exports = { createProject, updateProject, getProjects, deleteProject, start_process, getMultiFormStepData, createNewInfrastructure, getAllEmployee, addRessources, checkData, ConfirmResource };
+module.exports = { checkProcessingAllowed, createProject, updateProject, getProjects, deleteProject, start_process, getMultiFormStepData, createNewInfrastructure, getAllEmployee, addRessources, ConfirmResource };
 
 

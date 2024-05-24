@@ -7,14 +7,14 @@ const resourceRouter = require('./routes/inspectionResource');
 const usersRouter= require('./routes/user');
 const infrastructureRouter = require('./routes/infrastructure');
 const result = require('./routes/results');
+const missionsRouter =require('./routes/missions');
 const bodyParser = require('body-parser');
 const {authenticateToken }= require('./middleware/authenticationToken');
 const path = require('path'); // Import du module path
 const config = require('./config.json');
-
 const port = process.env.PORT || 3000;
 const { PrismaClient } = require('@prisma/client');
-
+const {getDataStatistics}=require('./controller/DataStatystics')
 const app = express();
 
 const sharedRepo = config.sharedRepo;
@@ -44,6 +44,8 @@ app.use('/project', authenticateToken, projectRouter);
 app.use('/comment', authenticateToken, commentRouter);
 app.use('/results', authenticateToken  ,result);
 app.use('/users',authenticateToken,usersRouter );
+app.get('/getDataStatystics',authenticateToken,getDataStatistics );
+app.use('/missions',authenticateToken,missionsRouter );
 
 console.log(__dirname);
 

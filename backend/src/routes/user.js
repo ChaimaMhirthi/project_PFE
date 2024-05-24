@@ -1,11 +1,13 @@
 const router = require('express').Router();
-const {  getManager,getEmployee,getAllEmployee ,updateEmployee,deleteEmployee ,getAllManager ,deleteManager,updateManager,CreateUser} = require('../controller/users');
+const {  getAllEmployeeNames,getManager,getEmployee,getAllEmployee ,updateEmployee,deleteEmployee ,getAllManager ,deleteManager,updateManager,CreateUser} = require('../controller/users');
 const {  isSuperAdmin } = require('../middleware/authenticationToken');
 const { multerUploadProfileImage } = require('../config/multer');
 
 
 // employees management
 router.get('/get-allemployee',getAllEmployee);
+router.get('/get-allemployeeNames',getAllEmployeeNames);
+
 router.get('/get-employee/:employeeId',getEmployee);
 
 router.post('/update-employee', multerUploadProfileImage.any(),updateEmployee);

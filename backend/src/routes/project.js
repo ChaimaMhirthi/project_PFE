@@ -5,7 +5,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { multerConfigImage, multerConfig_Video_Fp, handleMulterError } = require('../config/multer');
-const { createProject, getProjects, updateProject, deleteProject ,start_process,getMultiFormStepData,getAllEmployee,addRessources,checkData,ConfirmResource} = require('../controller/project');
+const {checkProcessingAllowed, createProject, getProjects, updateProject, deleteProject ,start_process,getMultiFormStepData,getAllEmployee,addRessources,ConfirmResource} = require('../controller/project');
 const {  canCreateProject,canAddRessources,canStartProcess,canConfirmResource } = require('../middleware/authenticationToken');
 
 
@@ -27,7 +27,7 @@ router.get('/get-allemployee',getAllEmployee);
 router.post('/add-images',canAddRessources, multerConfigImage.any(), addRessources);
 
 router.post('/add-videos-flightpaths',canAddRessources, multerConfig_Video_Fp.any(), addRessources);
-router.post('/can-start-prcessing',checkData );
-router.post('/canConfirmResource',canConfirmResource ,ConfirmResource );
+router.post('/confirmResource',canConfirmResource ,ConfirmResource );
+router.post('/checkProcessingAllowed',checkProcessingAllowed);
 
 module.exports = router;

@@ -29,7 +29,7 @@ const authenticateToken = asyncHandler(async (req, res, next) => {
 
 const canCreateProject = async (req, res, next) => {
     const { user } = req;
-    if (user.user === 'manager' || (user.user === 'employee' && user.role === 3)) {
+    if ( user.user === 'manager' || (user.user === 'employee' && user.role === 3)) {
         // L'utilisateur est autorisé, passe au middleware suivant
         next();
     } else {
@@ -49,8 +49,9 @@ const canManageInfrastructures = async (req, res, next) => {
 };
 const canAddRessources = async (req, res, next) => {
   const { user } = req;
-  if (user.user === 'employee' && user.role === 1) {
+  if (user.user === 'manager' || user.user === 'employee' && user.role === 1) {
       // L'utilisateur est autorisé, passe au middleware suivant
+      
       next();
   } else {
       // L'utilisateur n'est pas autorisé à créer un projet
@@ -69,7 +70,7 @@ const canStartProcess = async (req, res, next) => {
 };
 const canConfirmResource = async (req, res, next) => {
   const { user } = req;
-  if (user.user === 'employee' && user.role === 1) {
+  if (user.user === 'manager' || user.user === 'employee' && user.role === 1) {
       // L'utilisateur est autorisé, passe au middleware suivant
       next();
   } else {
@@ -79,7 +80,7 @@ const canConfirmResource = async (req, res, next) => {
 };
 const canEvaluate= async (req, res, next) => {
   const { user } = req;
-  if (user.user === 'employee' && user.role === 2) {
+  if (user.user === 'manager' || user.user === 'employee' && user.role === 2) {
       // L'utilisateur est autorisé, passe au middleware suivant
       next();
   } else {
