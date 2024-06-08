@@ -5,11 +5,17 @@ const bcrypt = require('bcrypt');
 
 
 const getAllEmployee = async (req, res) => {
-  const { managerId, superAdminId } = req.user;
+  const { managerId } = req.user;
 
   try {
+    if (!managerId) {
+      return res.status(400).json({ error: `missing manger id ` });
+    }
+
     const AllEmployee = await prisma.employee.findMany({
-      where: managerId ? { managerId } : superAdminId ? {} : { id: null },
+      where: {
+        managerId: parseInt(managerId)
+      },
       select: {
         id: true,
         firstname: true,
@@ -35,7 +41,7 @@ const getAllEmployee = async (req, res) => {
     if (!AllEmployee) {
       return res.status(404).json({ error: `no employees found ` });
     }
-console.log("employees",AllEmployee);
+    console.log("employees", AllEmployee);
     res.status(200).json({ message: 'Récupération réussie des employés', AllEmployee });
 
   } catch (error) {
@@ -43,31 +49,34 @@ console.log("employees",AllEmployee);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 };
-const getAllEmployeeNames = async (req, res) => {
+const getAllAssigneeNames = async (req, res) => {
   const { managerId } = req.user;
 
   try {
-      const EmployeeNames = await prisma.employee.findMany({
-          where: {
-              managerId: managerId,
-          },
-          select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-              role :true,
-          }
-      });
-
-      if (!EmployeeNames) {
-          return res.status(404).json({ error: 'No project managers found for this manager and role.' });
+    const EmployeeNames = await prisma.employee.findMany({
+      where: {
+        managerId: managerId,
+        role: {
+          in: [1, 2]
+        }
+      },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        role: true,
       }
-      return res.status(200).json({  message: 'Project managers retrieved successfully.',  EmployeeNames });
+    });
+
+    if (!EmployeeNames) {
+      return res.status(404).json({ error: 'No project managers found for this manager and role.' });
+    }
+    return res.status(200).json({ message: 'Project managers retrieved successfully.', EmployeeNames });
 
   } catch (error) {
-      // In case of error, return a 500 Internal Server Error response with an error message
-      console.error('An error occurred while retrieving project managers:', error);
-      return res.status(500).json({ error: 'An error occurred while retrieving project managers.' });
+    // In case of error, return a 500 Internal Server Error response with an error message
+    console.error('An error occurred while retrieving project managers:', error);
+    return res.status(500).json({ error: 'An error occurred while retrieving project managers.' });
   }
 };
 
@@ -78,18 +87,7 @@ const getEmployee = async (req, res) => {
   try {
     const profileInfo = await prisma.employee.findUnique({
       where: { id: parseInt(employeeId) },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        role: true,
-        address: true,
-        email: true,
-        phone: true,
-        createdAt: true,
-        accountVerified: true,
-        status: true,
-        profileImage: true,
+      include: {
         manager: {    // Sélectionnez les projets associés à chaque employé
           select: {
             companyname: true
@@ -100,6 +98,8 @@ const getEmployee = async (req, res) => {
             projectId: true
           }
         }
+
+
       }
     });
     if (!profileInfo) {
@@ -107,98 +107,73 @@ const getEmployee = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Récupération réussie de profile info', profileInfo });
-    
+
   } catch (error) {
     console.error('Erreur lors de la récupération des donnes de profile:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 };
-const updateManager = async (req, res) => {
+const UpdateUser = async (req, res, userType) => {
   const editedData = req.body;
   const profileImage = req?.files?.[0]?.originalname;
   console.log("editedData", editedData);
   console.log("profileImage", profileImage);
 
   try {
-    const { id: managerId, ...updateFields } = editedData;
+    const { id: userId, ...updateFields } = editedData;
 
-    // Iterate through all damages to update
     if (profileImage) {
-      // Si un nouveau fichier d'image a été téléchargé, ajoutez-le aux champs de mise à jour
       updateFields.profileImage = profileImage;
     }
 
+    let existingUser;
+    let updatedUser;
 
-    // Check if the Manager exists and belongs to the given project
-    const existingManager = await prisma.manager.findUnique({
-      where: {
-        id: parseInt(managerId),
+    if (userType === 'manager') {
+      existingUser = await prisma.manager.findUnique({
+        where: {
+          id: parseInt(userId),
+        }
+      });
+
+      if (!existingUser) {
+        return res.status(404).json({ error: `The Manager with ID ${userId} does not exist or does not belong` });
       }
-    });
 
-    if (!existingManager) {
-      return res.status(404).json({ error: `The Manager with ID ${managerId} does not exist or does not belong ` });
+      updatedUser = await prisma.manager.update({
+        where: {
+          id: parseInt(userId),
+        },
+        data: updateFields
+      });
+
+    } else if (userType === 'employee') {
+      existingUser = await prisma.employee.findUnique({
+        where: {
+          id: parseInt(userId),
+        }
+      });
+
+      if (!existingUser) {
+        return res.status(404).json({ error: `The Employee with ID ${userId} does not exist or does not belong` });
+      }
+
+      updatedUser = await prisma.employee.update({
+        where: {
+          id: parseInt(userId),
+        },
+        data: updateFields
+      });
     }
 
-    // Update Manager information
-    const updatedManager = await prisma.manager.update({
-      where: {
-        id: parseInt(managerId),
-      },
-      data: updateFields
-
-    });
-
-    res.status(200).json({ message: `manager  with ID ${managerId} updated successufuly ` });
+    res.status(200).json({ message: `${userType} with ID ${userId} updated successfully` });
 
   } catch (error) {
-    console.error('Error updating damages:', error);
-    res.status(500).json({ error: 'An error occurred while updating damages' });
+    console.error(`Error updating ${userType}:`, error);
+    res.status(500).json({ error: `An error occurred while updating ${userType}` });
   }
 };
-const updateEmployee = async (req, res) => {
-  const editedData = req.body;
-  const profileImage = req?.files?.[0]?.originalname;
-  console.log(editedData);
-  try {
-    // Iterate through all damages to update
 
-    const { id: employeeId, ...updateFields } = editedData;
-    console.log('updateFields', updateFields);
-    console.log('id', employeeId);
-
-    if (profileImage) {
-      // Si un nouveau fichier d'image a été téléchargé, ajoutez-le aux champs de mise à jour
-      updateFields.profileImage = profileImage;
-    }
-
-    // Check if the employee exists and belongs to the given project
-    const existingEmployee = await prisma.employee.findUnique({
-      where: {
-        id: parseInt(employeeId),
-      }
-    });
-
-    if (!existingEmployee) {
-      return res.status(404).json({ error: `The employee with ID ${employeeId} does not exist or does not belong ` });
-    }
-
-    // Update employee information
-    const updatedEmployee = await prisma.employee.update({
-      where: {
-        id: parseInt(employeeId),
-      },
-      data: updateFields
-
-    });
-
-    res.status(200).json({ message: `employee  with ID ${employeeId} updated successufuly ` });
-
-  } catch (error) {
-    console.error('Error updating employee:', error);
-    res.status(500).json({ error: 'An error occurred while updating employee' });
-  }
-};
 const deleteEmployee = async (req, res) => {
   const { employeeId } = req.params;
   try {
@@ -277,19 +252,7 @@ const getManager = async (req, res) => {
   try {
     const profileInfo = await prisma.manager.findUnique({
       where: { id: parseInt(managerId) },
-
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        email: true,
-        phone: true,
-        createdAt: true,
-        accountVerified: true,
-        status: true,
-        companyname: true,
-        profileImage: true,
-
+      include: {
         employee: {
           select: {
             id: true
@@ -299,14 +262,14 @@ const getManager = async (req, res) => {
           select: {
             id: true
           }
-        }
-      }
+        },
 
+      }
     });
     if (!profileInfo) {
       return res.status(404).json({ error: `no manager found ` });
     }
-
+    console.log('profileInfo maanger', profileInfo);
     res.status(200).json({ message: 'Récupération réussie de manager profile', profileInfo });
 
   } catch (error) {
@@ -316,34 +279,108 @@ const getManager = async (req, res) => {
 };
 
 const deleteManager = async (req, res) => {
-  const { managerId } = req.params;
+  const { superAdminId } = req.user;
+  const managerId = parseInt(req.params.managerId);
+
+
+  if (!superAdminId) {
+    return res.status(401).json({ error: 'You do not have privilege to delete manager' });
+  }
   console.log("Delete Manager", managerId);
   try {
-    // Vérifiez si le dommage existe
+    // Vérifiez si le manager existe
     const existingManager = await prisma.manager.findUnique({
       where: {
         id: parseInt(managerId),
-      }
+      },
+
     });
 
     if (!existingManager) {
-      return res.status(404).json({ error: `The Manager with ID ${managerId} does not exist or does not belong ` });
+      return res.status(404).json({ error: `The Manager with ID ${managerId} does not exist or does not belong` });
     }
 
-    // Supprimez le dommage
-    await prisma.manager.delete({
+
+    // Suppression des missions liées aux employés du manager
+    await prisma.mission.deleteMany({
       where: {
-        id: parseInt(managerId),
+        employee: {
+          managerId: managerId
+        }
       }
     });
 
-    res.status(200).json({ message: `manager with ID ${managerId}  removed successfully ` });
+    //Supprimer les assignations de projets des employés
+    await prisma.employeeProjectAssignment.deleteMany({
+      where: {
+        employee: {
+          managerId: managerId
+        }
+      }
+    });
 
+    //  Supprimer les employés liés au manager
+    await prisma.employee.deleteMany({
+      where: { managerId: managerId }
+    });
+
+
+    // Suppression des enregistrements Damage liés aux resources du manager
+    await prisma.damage.deleteMany({
+      where: {
+        resource: {
+          project: {
+            managerId: managerId
+          }
+        }
+      }
+    });
+
+    await prisma.resource.deleteMany({
+      where: {
+        project: {
+          managerId: managerId
+        }
+      }
+    });
+
+
+    // Suppression des projets créés par le manager
+    await prisma.project.deleteMany({
+      where: { managerId: managerId }
+    });
+
+    // Suppression des ressources liées aux projets du manager
+
+    // Suppression des AiProcessingProject liés aux projets du manager
+    await prisma.aiProcessingProject.deleteMany({
+      where: {
+        project: {
+          managerId: managerId
+        }
+      }
+    });
+
+
+
+    // Suppression des Infrastructures liées au manager
+    await prisma.infrastructure.deleteMany({
+      where: { managerId: managerId }
+    });
+
+    // Suppression finale du manager
+    const deletedManager = await prisma.manager.delete({
+      where: { id: managerId }
+    });
+
+
+    res.status(200).json({ message: `Manager with ID ${managerId} removed successfully` });
   } catch (error) {
     console.error('Error deleting Manager:', error);
     res.status(500).json({ error: 'An error occurred while deleting Manager' });
   }
 };
+
 
 const CreateUser = async (req, res, entityType) => {
   try {
@@ -381,11 +418,11 @@ const CreateUser = async (req, res, entityType) => {
 
     const newUser = await createUser({
       ...userData,
-       //is employee
+      //is employee
       managerId: userData.managerId ? parseInt(userData.managerId) : undefined,
-       //is employee
+      //is employee
       role: userData.role ? parseInt(userData.role) : undefined,
-      
+
       status: userData.status ? parseInt(userData.status) : undefined,
 
       password: hashedPassword,
@@ -398,13 +435,13 @@ const CreateUser = async (req, res, entityType) => {
     if (!newUser) {
       return res.status(400).json({ error: `Failed to create ${entityType}. Please check your input data.` });
     }
-    
+
     await sendPasswordByEmail(newUser.email, newUser.Token, securePassword, entityType)
-    res.status(200).json({ message: ` ${entityType} created successfully`});
+    res.status(200).json({ message: ` ${entityType} created successfully` });
 
   } catch (error) {
     console.error('Error deleting Manager:', error);
     res.status(500).json({ error: 'An error occurred while creating user' });
   }
 };
-module.exports = {getAllEmployeeNames, getEmployee, getManager, getAllManager, updateManager, deleteManager, getAllEmployee, updateEmployee, deleteEmployee, CreateUser };
+module.exports = { getAllAssigneeNames, getEmployee, getManager, getAllManager, UpdateUser, deleteManager, getAllEmployee, deleteEmployee, CreateUser };

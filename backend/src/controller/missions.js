@@ -6,42 +6,44 @@ const prisma = new PrismaClient();
 // Contrôleur pour créer une nouvelle mission
 const createMission = async (req, res) => {
     const { title, description, assigneeId } = req.body;
-    const { employeeId, managerId, role ,user} = req.user
+    const { employeeId, managerId, role, user } = req.user;
+  
+    // Vérification de l'autorisation
     if (!managerId && (!employeeId || role !== 3)) {
-        return res.status(401).json({ error: "only admin or projectManager can create missions" });
-
+      return res.status(401).json({ error: "Only admin or project manager can create missions" });
     }
-    // Vérification des champs obligatoires 
-    if (!assigneeId) {
-        return res.status(422).json({ error: "Project Manager ID is required" });
+  
+    // Vérification des champs obligatoires
+    if (!title || !description || !assigneeId) {
+      const missingFields = [];
+      if (!title) missingFields.push("Title");
+      if (!description) missingFields.push("Description");
+      if (!assigneeId) missingFields.push("Assignee ID");
+  
+      return res.status(422).json({ error: `${missingFields.join(", ")} ${missingFields.length > 1 ? "are" : "is"} required` });
     }
-
-    if (!title) {
-        return res.status(422).json({ error: "Title is required" });
-    }
-    if (!description) {
-        return res.status(422).json({ error: "Description is required" });
-    }
-
+  
     try {
-        // Créer une nouvelle mission dans la base de données
-        const newMission = await prisma.mission.create({
-            data: {
-                title,
-                description,
-                employeeId: assigneeId,
-                creatorId: managerId || employeeId,
-                creatorType :user
-            },
-
-        });
-
-        res.status(201).json({ message: "mission created succcessefuly" });
+      // Définir les données de la nouvelle mission
+      const creatorId = employeeId || managerId;
+      const newMissionData = {
+        title,
+        description,
+        employeeId: assigneeId,
+        creatorId,
+        creatorType: user
+      };
+  
+      // Créer une nouvelle mission dans la base de données
+      const newMission = await prisma.mission.create({ data: newMissionData });
+  
+      res.status(201).json({ message: "Mission created successfully"});
     } catch (error) {
-        console.error("Error creating mission:", error);
-        res.status(500).json({ error: "An error occurred while creating the mission. Please try again later." });
+      console.error("Error creating mission:", error);
+      res.status(500).json({ error: "An error occurred while creating the mission. Please try again later." });
     }
-};
+  };
+  
 const getAllMissions = async (req, res) => {
     const {  managerId, employeeId, role } = req.user;
     let missions;
@@ -190,7 +192,7 @@ const deleteMission = async (req, res) => {
         const creatorId = mission.creatorId;
 
         // Vérifier si l'utilisateur a les permissions pour mettre à jour la mission
-        const isAuthorized = (employeeId && employeeId === creatorId) || (managerId && (managerId === creatorId));
+        const isAuthorized = (employeeId && employeeId === creatorId) || managerId;
 
         if (!isAuthorized) {
             return res.status(403).json({ error: "You do not have permission to delete this mission" });

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { multerConfigImage, multerConfig_Video_Fp, handleMulterError } = require('../config/multer');
 const {checkProcessingAllowed, createProject, getProjects, updateProject, deleteProject ,start_process,getMultiFormStepData,getAllEmployee,addRessources,ConfirmResource} = require('../controller/project');
-const {  canCreateProject,canAddRessources,canStartProcess,canConfirmResource } = require('../middleware/authenticationToken');
+const {  canCreateProject,canAddRessources,canStartProcess,canConfirmResource } = require('../middleware/authorization');
 
 
 

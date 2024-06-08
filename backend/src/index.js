@@ -1,27 +1,31 @@
 const express = require('express');
 const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
 const authRouter = require('./routes/auth');
 const projectRouter = require('./routes/project');
 const commentRouter = require('./routes/comment');
 const resourceRouter = require('./routes/inspectionResource');
-const usersRouter= require('./routes/user');
+const usersRouter = require('./routes/user');
 const infrastructureRouter = require('./routes/infrastructure');
 const result = require('./routes/results');
-const missionsRouter =require('./routes/missions');
+const missionsRouter = require('./routes/missions');
 const bodyParser = require('body-parser');
-const {authenticateToken }= require('./middleware/authenticationToken');
+
+const { authenticateToken } = require('./middleware/authenticationToken');
+const { checkStatus} = require('./middleware/checkStatus');
+const { getDataStatistics } = require('./controller/DataStatystics');
+
 const path = require('path'); // Import du module path
 const config = require('./config.json');
 const port = process.env.PORT || 3000;
-const { PrismaClient } = require('@prisma/client');
-const {getDataStatistics}=require('./controller/DataStatystics')
 const app = express();
 
 const sharedRepo = config.sharedRepo;
 
 app.use(express.static(sharedRepo));
 
-const prisma = new PrismaClient();
 
 async function testConnection() {
     try {
@@ -38,14 +42,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use('/auth', authRouter);
-app.use('/infrastructure',authenticateToken,infrastructureRouter);
 
-app.use('/project', authenticateToken, projectRouter);
-app.use('/comment', authenticateToken, commentRouter);
-app.use('/results', authenticateToken  ,result);
-app.use('/users',authenticateToken,usersRouter );
-app.get('/getDataStatystics',authenticateToken,getDataStatistics );
-app.use('/missions',authenticateToken,missionsRouter );
+// Appliquer authenticateToken globalement pour toutes les routes sauf /auth
+app.use(authenticateToken);
+app.use(checkStatus);
+
+app.use('/infrastructure', infrastructureRouter);
+app.use('/project', projectRouter);
+app.use('/comment', commentRouter);
+app.use('/results', result);
+app.use('/users', usersRouter);
+app.use('/missions', missionsRouter);
+app.get('/getDataStatystics', getDataStatistics);
 
 console.log(__dirname);
 

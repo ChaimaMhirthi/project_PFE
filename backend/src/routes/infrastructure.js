@@ -1,6 +1,6 @@
 const { getAllInfrastructures ,getInfrastructure ,deleteInfrastructure,updateExistingInfrastructure,createNewInfrastructure} = require('../controller/infrastructure');
 const { multerUploadInfrastrImage } = require('../config/multer');
-const {canManageInfrastructures}=require("../middleware/authenticationToken")
+const {canManageInfrastructures}=require("../middleware/authorization")
 
 const router = require('express').Router();
 router.get('/getall', getAllInfrastructures);

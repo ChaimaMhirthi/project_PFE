@@ -57,12 +57,12 @@ const sendPasswordByEmail = async (email, Token, Password, entityType) => {
             mailOptions = {
                 from: 'hammaabbes5@gmail.com',
                 to: email,
-                subject: 'Invitation à utiliser notre application en tant qu\'Manager',
+                subject: 'Invitation à utiliser notre application en tant que Manager',
                 text: `Cher administrateur,\n\nVous avez été invité à utiliser notre application en tant qu'administrateur.\n\nVotre compte administrateur a été créé avec succès.\n\nPour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : ${loginLink}\n\nNous sommes ravis de votre rejoindre a notre application.\n\nCordialement,\nVotre équipe de support`,
                 html: `<p>Cher administrateur,</p><p>Vous avez été invité à utiliser notre application en tant qu'administrateur.</p><p>Votre compte administrateur a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Pour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Nous sommes ravis de votre rejoindre a notre application.</p><p>Cordialement,<br>Votre équipe de support</p>`
             };
         }
-       else if (entityType === 'employee') {
+        else if (entityType === 'employee') {
             mailOptions = {
                 from: 'hammaabbes5@gmail.com',
                 to: email,
@@ -71,7 +71,7 @@ const sendPasswordByEmail = async (email, Token, Password, entityType) => {
                 html: `<p>Cher employee,</p><p>Vous avez été invité à utiliser notre application en tant qu'un employee.</p><p>Votre compte a été créé avec succès. \n\nVoici votre mot de passe :<h2>${Password}</h2> </p><p>Pour commencer à gérer l'application, veuillez vous connecter en cliquant sur ce lien : <a href="${loginLink}">Connexion</a></p><p>Nous sommes ravis de votre rejoindre a notre application.</p><p>Cordialement,<br>Votre équipe de support</p>`
             };
         }
-        
+
         // Envoi de l'e-mail
 
         const info = await transporter.sendMail(mailOptions); return info;
@@ -350,10 +350,10 @@ const registerUser = async (req, res, entityType) => {
 
 const login = asyncHandler(async (req, res, entityType) => {
     const { email, password, token } = req.body;
-console.log({email});
-console.log({password});
-console.log({token});
-console.log({entityType});
+    console.log({ email });
+    console.log({ password });
+    console.log({ token });
+    console.log({ entityType });
 
     // Validation des données d'entrée
     if (!email || !password) {
@@ -394,7 +394,7 @@ console.log({entityType});
             await updateUser({
                 where: { id: user.id },
                 data: {
-                    accountVerified:true,
+                    accountVerified: true,
                     Token: null,
                     TokenExpiresAt: null
                 }
@@ -422,10 +422,10 @@ console.log({entityType});
                     user: {
                         user: "manager",
                         managerId: user.id,
-                        companyname:user.companyname,
-                        firstname:user.firstname,
-                        lastname:user.lastname,
-                        profileImage:user.profileImage
+                        companyname: user.companyname,
+                        firstname: user.firstname,
+                        lastname: user.lastname,
+                        profileImage: user.profileImage
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
@@ -439,10 +439,10 @@ console.log({entityType});
                         user: "employee",
                         employeeId: user.id,
                         managerId: user.managerId,
-                        firstname:user.firstname,
-                        lastname:user.lastname,
+                        firstname: user.firstname,
+                        lastname: user.lastname,
                         role: user.role,
-                        profileImage:user.profileImage
+                        profileImage: user.profileImage
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
@@ -460,42 +460,43 @@ console.log({entityType});
     }
 });
 
-const adminLogin = asyncHandler(async(req, res) => {
+const adminLogin = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
-const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
 
     try {
-      // Recherche du superadmin dans la base de données par son nom d'utilisateur
-      const superadmin = await prisma.superAdmin.findUnique({
-        where: {
-          username: username,
-        },
-      });
-  
-      // Vérification si le superadmin existe et si le mot de passe correspond
-      if (!superadmin || !bcrypt.compareSync(password, superadmin.password)) {
-        // Retourner une réponse d'erreur si l'authentification échoue
-        return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
-      }
-      accessToken = jwt.sign(
-        {
-            user: {
-                username:superadmin.username,
-                superAdminId: superadmin.id,    
-                user:"superAdmin"        
-            }
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "24h" }
-    );
-      // Authentification réussie, retourner les informations du superadmin
-      return res.status(200).json({ accessToken });
+        // Recherche du superadmin dans la base de données par son nom d'utilisateur
+        const superadmin = await prisma.superAdmin.findUnique({
+            where: {
+                username: username,
+            },
+        });
+
+        // Vérification si le superadmin existe et si le mot de passe correspond
+        if (!superadmin || !bcrypt.compareSync(password, superadmin.password)) {
+            // Retourner une réponse d'erreur si l'authentification échoue
+            return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect.' });
+        }
+        accessToken = jwt.sign(
+            {
+                user: {
+                    username: superadmin.username,
+                    superAdminId: superadmin.id,
+                    user: "superAdmin"
+                }
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: "24h" }
+        );
+        // Authentification réussie, retourner les informations du superadmin
+        return res.status(200).json({ accessToken });
     } catch (error) {
-      // Gérer les erreurs de manière appropriée
-      console.error('Erreur lors de l\'authentification du superadmin:', error);
-      return res.status(500).json({ error: 'Erreur lors de l\'authentification du superadmin.' });
-    }});
+        // Gérer les erreurs de manière appropriée
+        console.error('Erreur lors de l\'authentification du superadmin:', error);
+        return res.status(500).json({ error: 'Erreur lors de l\'authentification du superadmin.' });
+    }
+});
 
 const getUserByEmail = async (email, entityType) => {
     try {
@@ -568,4 +569,4 @@ const getManagerName = async (req, res) => {
         res.status(500).json({ error: 'Erreur interne du serveur' });
     }
 };
-module.exports = {adminLogin, generateToken, generateSecurePassword, sendPasswordByEmail, login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail, getManagerName, getUserByEmail, createUser };
+module.exports = { adminLogin, generateToken, generateSecurePassword, sendPasswordByEmail, login, registerUser, verifyOTP, resetPassword, forgotPassword, sendOTPByEmail, resendOTPByEmail, getManagerName, getUserByEmail, createUser };

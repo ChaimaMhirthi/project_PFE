@@ -7,6 +7,7 @@ const getDataStatistics = async (req, res) => {
     let employeeCount = 0;
     let companyCount = 0;
     let formattedStats;
+    console.log('dashboard user id',employeeId);
     try {
         if (employeeId) {
             projectCount = await prisma.employeeProjectAssignment.count({
@@ -14,9 +15,9 @@ const getDataStatistics = async (req, res) => {
                     employeeId: employeeId
                 }
             });
-          
+          console.log('projectCount',projectCount);
         }
-        if (managerId) {
+        else if  (managerId) {
             projectCount = await prisma.project.count({
                 where: {
                     managerId: managerId

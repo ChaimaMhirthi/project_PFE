@@ -125,22 +125,77 @@ const updateProject = async (req, res) => {
         res.status(500).json({ error: 'Error updating project' });
     }
 }
-
 const deleteProject = async (req, res) => {
     const projectId = req.params.id;
-    console.log(projectId)
+    console.log(projectId);
     try {
-        const deletedProject = await prisma.project.delete({
-            where: {
-                id: parseInt(projectId)
-            }
-        });
-        res.status(200).json({ message: 'Project deleted' });
+            // Récupérer les IDs des ressources associées au projet
+            const resources = await prisma.resource.findMany({
+                where: {
+                    projectId: parseInt(projectId)
+                },
+                select: {
+                    id: true
+                }
+            });
+    
+            // Récupérer les IDs des dommages associés à ces ressources
+            const resourceIds = resources.map(resource => resource.id);
+            const damageIds = await prisma.damage.findMany({
+                where: {
+                    resourceId: {
+                        in: resourceIds
+                    }
+                },
+                select: {
+                    id: true
+                }
+            });
+    
+            // Supprimer les dommages associés aux ressources
+            await prisma.damage.deleteMany({
+                where: {
+                    id: {
+                        in: damageIds.map(damage => damage.id)
+                    }
+                }
+            });
+    
+            // Ensuite, supprimer les ressources associées au projet
+            await prisma.resource.deleteMany({
+                where: {
+                    projectId: parseInt(projectId)
+                }
+            });
+    
+            // Supprimer les enregistrements associés dans EmployeeProjectAssignment
+            await prisma.employeeProjectAssignment.deleteMany({
+                where: {
+                    projectId: parseInt(projectId)
+                }
+            });
+    
+            // Supprimer les enregistrements associés dans AiProcessingProject
+            await prisma.aiProcessingProject.deleteMany({
+                where: {
+                    projectId: parseInt(projectId)
+                }
+            });
+    
+            // Ensuite, supprimer le projet lui-même
+            await prisma.project.delete({
+                where: {
+                    id: parseInt(projectId)
+                }
+            });
+    
+        res.status(200).json({ message: 'Project and related records deleted' });
     } catch (error) {
         console.log(error);
-        res.status(500).json({ error: 'Error deleting project' });
+        res.status(500).json({ error: 'Error deleting project and related records' });
     }
 }
+
 
 // const addResource = async (req, res) => {
 //     const projectId = req.params.id;

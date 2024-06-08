@@ -36,7 +36,6 @@ model Manager {
   updatedAt       DateTime?        @updatedAt
   status          Int?             @default(0)
   projects        Project[]
-  comments        Comment[]
   employee        Employee[]
   infrastructure  Infrastructure[]
 }
@@ -57,7 +56,6 @@ model Employee {
   otp             String?
   otpExpiresAt    DateTime?
   project         EmployeeProjectAssignment[]
-  comments        Comment[]
   role            Int?                        @default(0) //0 ;guest(lecture seule) ; 1:inspecteur(photographe)  ; 2:manager(chef de project ) ;3 ;exppert; 4: admin
   accountVerified Boolean?                    @default(false)
   managerId       Int
@@ -150,18 +148,7 @@ model Resource {
   Damages Damage[]
 }
 
-model Comment {
-  id Int @id @default(autoincrement())
 
-  description String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  damageId    Int?
-  managerId   Int?
-  manager     Manager?  @relation(fields: [managerId], references: [id])
-  employeeId  Int?
-  employee    Employee? @relation(fields: [employeeId], references: [id])
-}
 
 model Damage {
   id           Int     @id @default(autoincrement())

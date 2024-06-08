@@ -5,23 +5,80 @@ const prisma = new PrismaClient();
 const deleteInfrastructure = async (req, res) => {
   const { id } = req.params;
   try {
-    // Vérifier si l'infrastructure existe
-    const infrastructureToDelete = await prisma.infrastructure.findUnique({
-      where: {
-        id: parseInt(id),
-      },
-    });
+   // Vérifier si l'infrastructure existe
+   const infrastructureToDelete = await prisma.infrastructure.findUnique({
+    where: {
+      id: parseInt(id),
+    },
+    include: {
+      InspectionProjects: true,
+    },
+  });
 
-    if (!infrastructureToDelete) {
-      return res.status(404).json({ error: 'Infrastructure non trouvée' });
-    }
+  if (!infrastructureToDelete) {
+    return res.status(404).json({ error: 'Infrastructure non trouvée' });
+  }
+ // Récupérer les IDs des projets associés à l'infrastructure
+ const associatedProjects = await prisma.project.findMany({
+  where: {
+    infrastructureId: parseInt(id),
+  },
+  select: {
+    id: true,
+  },
+});
 
-    // Supprimer l'infrastructure
-    await prisma.infrastructure.delete({
-      where: {
-        id: parseInt(id),
-      },
-    });
+const projectIds = associatedProjects.map(project => project.id);
+
+// Supprimer les enregistrements associés dans EmployeeProjectAssignment
+await prisma.employeeProjectAssignment.deleteMany({
+  where: {
+    projectId: {
+      in: projectIds,
+    },
+  },
+});
+// Supprimer les enregistrements associés dans Damage
+await prisma.damage.deleteMany({
+  where: {
+    resourceId: {
+      in: await prisma.resource.findMany({
+        where: {
+          projectId: {
+            in: projectIds,
+          },
+        },
+        select: {
+          id: true,
+        },
+      }).then(resources => resources.map(resource => resource.id)),
+    },
+  },
+});;
+
+// Supprimer les enregistrements associés dans Resource
+await prisma.resource.deleteMany({
+  where: {
+    projectId: {
+      in: projectIds,
+    },
+  },
+});
+
+// Ensuite, supprimer les projets associés à l'infrastructure
+await prisma.project.deleteMany({
+  where: {
+    infrastructureId: parseInt(id),
+  },
+});
+
+  // Ensuite, supprimer l'infrastructure elle-même
+  await prisma.infrastructure.delete({
+    where: {
+      id: parseInt(id),
+    },
+  });
+   
 
     res.status(200).json({ message: 'Infrastructure supprimée avec succès' });
   } catch (error) {
@@ -133,7 +190,7 @@ const getAllInfrastructures = async (req, res) => {
   const { managerId, superAdminId } = req.user;
   try {
     let infrastructures;
-    if (superAdminId!==undefined && superAdminId) {
+    if (superAdminId) {
       // Si superAdminId est défini, récupérer toutes les infrastructures
       infrastructures = await prisma.infrastructure.findMany();
     } else if (managerId) {
